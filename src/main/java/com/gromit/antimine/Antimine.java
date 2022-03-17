@@ -3,9 +3,12 @@ package com.gromit.antimine;
 import com.massivecraft.factions.Faction;
 import com.massivecraft.factions.Factions;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.List;
 
 public final class Antimine extends JavaPlugin {
 
@@ -21,11 +24,18 @@ public final class Antimine extends JavaPlugin {
     public static String startMSGraider;
 
     public static World raidOutpost;
+    public static List<Chunk> outpostCore;
+    public static int minY;
+    public static int maxY;
+    public static int minX;
+    public static int maxX;
+    public static int minZ;
+    public static int maxZ;
 
 
     @Override
     public void onEnable() {
-        getServer().getPluginManager().registerEvents(new Listeners(this), this);
+
 
 
         //default config
@@ -62,6 +72,13 @@ public final class Antimine extends JavaPlugin {
 
         raidOutpost = Bukkit.getWorld(config.getString("raiding-outpost-world"));
 
+        minY = config.getInt("raiding-outpost-miny", 200);
+        maxY = config.getInt("raiding-outpost-maxy", 100);
+        minX = config.getInt("raiding-outpost-minx", -20);
+        maxX = config.getInt("raiding-outpost-maxx", 20);
+        minZ = config.getInt("raiding-outpost-minz", -20);
+        maxZ = config.getInt("raiding-outpost-maxz", 20);
+
 
 
 
@@ -77,5 +94,14 @@ public final class Antimine extends JavaPlugin {
             outpost.setPermanentPower(1000);
             outpost.setTag("RaidingOutpost");
         } else{getLogger().info("outpost faction exists already");}
+
+
+
+
+        getServer().getPluginManager().registerEvents(new Listeners(this , minY, maxY,minX, maxX, minZ, maxZ), this);
+
+
+
+
     }
 }
