@@ -66,11 +66,11 @@
 
     <dependencies>
         <dependency>
-            <groupId>AtlasSpigot</groupId>
-            <artifactId>AtlasSpigot</artifactId>
+            <groupId>Paper-Server-reobf</groupId>
+            <artifactId>Paper-Server-reobf</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/AtlasSpigot.jar</systemPath>
+            <systemPath>${basedir}/libs/Paper-Server-reobf.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.massivecraft</groupId>

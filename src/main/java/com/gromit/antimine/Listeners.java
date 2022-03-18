@@ -1,57 +1,51 @@
 package com.gromit.antimine;
 
 import com.massivecraft.factions.*;
-import net.minecraft.world.phys.AxisAlignedBB;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.configuration.Configuration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import static com.gromit.antimine.Antimine.*;
 
 public class Listeners implements Listener {
 
-
-    public static HashMap<Faction, Long> raidMap = new HashMap<>();
-    public static long lastBreachTimeMS = 0;
-
-
-    private final Plugin plugin;
+    private long lastBreachTimeMS = 0;
+    private final Object2LongOpenHashMap<Faction> raidMap;
+    private final Antimine plugin;
     private final World raidWorld = raidOutpost;
-
     private final Faction raidingOutpostFaction = Factions.getInstance().getByTag("RaidingOutpost");
-
-
     private final Faction fWild = Factions.getInstance().getFactionById("0");
-
     private final int minY;
     private final int maxY;
     private final int minX;
     private final int maxX;
     private final int minZ;
     private final int maxZ;
+    private final String startMSGTarget;
+    private final String startMSGRaider;
+    private final boolean preventMining;
 
-
-    public Listeners(Plugin plugin, int minY, int maxY, int minX, int maxX, int minZ, int maxZ ) {
+    public Listeners(Antimine plugin, Configuration config, Object2LongOpenHashMap<Faction> raidMap) {
         this.plugin = plugin;
-        this.minY = minY;
-        this.maxY = maxY;
-        this.minX = minX;
-        this.maxX = maxX;
-        this.minZ = minZ;
-        this.maxZ = maxZ;
-
-
+        this.minY = config.getInt("raiding-outpost-miny", 200);
+        this.maxY = config.getInt("raiding-outpost-maxy", 100);
+        this.minX = config.getInt("raiding-outpost-minx", -20);
+        this.maxX = config.getInt("raiding-outpost-maxx", 20);
+        this.minZ = config.getInt("raiding-outpost-minz", -20);
+        this.maxZ = config.getInt("raiding-outpost-maxz", 20);
+        this.startMSGTarget = config.getString("start-raid-msg");
+        this.startMSGRaider = config.getString("you-started-raiding");
+        this.preventMining = config.getBoolean("prevent-mining-spawner");
+        this.raidMap = raidMap;
     }
 
     @EventHandler
@@ -122,9 +116,9 @@ public class Listeners implements Listener {
 
             raidMap.put(eventFaction, currentTime);
 
-            spawnFaction.sendMessage(startMSGraider);
+            spawnFaction.sendMessage(startMSGRaider);
 
-            eventFaction.sendMessage(startMSGtarget);
+            eventFaction.sendMessage(startMSGTarget);
 
         }
 
