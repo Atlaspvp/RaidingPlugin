@@ -5,7 +5,6 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.Configuration;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,16 +13,15 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 
 import java.util.List;
 
-import static com.gromit.antimine.Antimine.*;
-
 public class Listeners implements Listener {
 
     private long lastBreachTimeMS = 0;
     private final Object2LongOpenHashMap<Faction> raidMap;
     private final Antimine plugin;
-    private final World raidWorld = raidOutpost;
+    private final World raidWorld;
     private final Faction raidingOutpostFaction = Factions.getInstance().getByTag("RaidingOutpost");
-    private final Faction fWild = Factions.getInstance().getFactionById("0");
+    private final Faction wilderness = Factions.getInstance().getWilderness();
+    private final Faction warzone = Factions.getInstance().getWarZone();
     private final int minY;
     private final int maxY;
     private final int minX;
@@ -36,6 +34,7 @@ public class Listeners implements Listener {
 
     public Listeners(Antimine plugin, Configuration config, Object2LongOpenHashMap<Faction> raidMap) {
         this.plugin = plugin;
+        this.raidWorld = Bukkit.getWorld(config.getString("raiding-outpost-world"));
         this.minY = config.getInt("raiding-outpost-miny", 200);
         this.maxY = config.getInt("raiding-outpost-maxy", 100);
         this.minX = config.getInt("raiding-outpost-minx", -20);
@@ -50,76 +49,51 @@ public class Listeners implements Listener {
 
     @EventHandler
     public void onExplosion(EntityExplodeEvent event) {
+        if (event.blockList().isEmpty()) return;
         if (event.isCancelled()) return;
+        if (!(event.getEntity() instanceof TNTPrimed tntPrimed)) return;
+
         List<Block> blockList = event.blockList();
-        if (blockList.isEmpty()) return;
-
-        Entity entity = event.getEntity();
-
-        if (!(entity instanceof TNTPrimed)) return;
 
         Location eventLoc = event.getLocation();
         FLocation eventLocation = new FLocation(eventLoc);
         Faction eventFaction = Board.getInstance().getFactionAt(eventLocation);
 
-        if (eventFaction.equals(fWild)) return;
+        if (eventFaction.equals(wilderness)) return;
+        if (eventFaction.equals(warzone)) return;
 
-        if(entity.getWorld().equals(raidWorld)){
-            //check if in claims of the raiding outpost
+        long currentTime = System.currentTimeMillis();
+        if (tntPrimed.getWorld().equals(raidWorld)) {
+            if (!eventFaction.equals(raidingOutpostFaction)) return;
 
-            if(eventFaction.equals(raidingOutpostFaction)){
-
-                if(System.currentTimeMillis()>(lastBreachTimeMS + 100000)){
-                    event.setCancelled(true);
-                    return;
-                }else{
-                    if(eventLoc.getX()>(minX-2) && eventLoc.getX()<(maxX+2) && eventLoc.getZ()>(minZ+2)&& eventLoc.getZ()<(maxZ+2)){
-                        boolean blockBroken = false;
-                        for(Block block : blockList){
-                            Location location = block.getLocation();
-                            if(location.getY()<maxY && location.getY()>minY && location.getX()<maxX && location.getX()>minX && location.getZ()<maxZ && location.getZ()>minZ){
-                                blockBroken=true;
-                                lastBreachTimeMS = System.currentTimeMillis();
-                                break;
-                            }
-                        }
+            if (currentTime < lastBreachTimeMS + 100000) {
+                event.setCancelled(true);
+                return;
+            } else if (eventLoc.getX() > minX - 2 && eventLoc.getX() < maxX + 2 && eventLoc.getZ() > minZ - 2 && eventLoc.getZ() < maxZ + 2) {
+                for (Block block : blockList) {
+                    Location location = block.getLocation();
+                    if (location.getY() < maxY && location.getY() > minY && location.getX() < maxX && location.getX() > minX && location.getZ() < maxZ && location.getZ() > minZ) {
+                        lastBreachTimeMS = currentTime;
+                        break;
                     }
                 }
             }
             //regenerate outpost
-
         }
 
-
-
-        TNTPrimed tntPrimed = (TNTPrimed) entity;
-
         Faction spawnFaction = Board.getInstance().getFactionAt(new FLocation(tntPrimed.getSpawnLocation()));
-
         if (eventFaction.equals(spawnFaction)) return;
 
-        long currentTime = System.currentTimeMillis();
-
-
-        if (raidMap.containsKey(eventFaction)){
-            long lastEntry = raidMap.get(eventFaction);
-
-            if(currentTime - lastEntry < 100) return;
-
-
-
+        long lastEntry = raidMap.get(eventFaction);
+        if (lastEntry != 0L) {
+            if (currentTime - lastEntry < 100) return;
             if (blockList.contains(eventLoc.getBlock())){
                 raidMap.put(eventFaction, currentTime);
             }
-
-        } else{
-
+        } else {
             raidMap.put(eventFaction, currentTime);
-
             spawnFaction.sendMessage(startMSGRaider);
-
             eventFaction.sendMessage(startMSGTarget);
-
         }
 
     }

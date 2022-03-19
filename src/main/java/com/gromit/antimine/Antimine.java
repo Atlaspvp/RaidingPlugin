@@ -3,9 +3,7 @@ package com.gromit.antimine;
 import com.massivecraft.factions.Faction;
 import com.massivecraft.factions.Factions;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
-import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -16,7 +14,6 @@ public final class Antimine extends JavaPlugin {
     private final Object2LongOpenHashMap<Faction> raidMap = new Object2LongOpenHashMap<>();
     private final FileConfiguration config = this.getConfig();
 
-    public static World raidOutpost;
     public static List<Chunk> outpostCore;
 
     @Override
@@ -46,7 +43,5 @@ public final class Antimine extends JavaPlugin {
         config.addDefault("raiding-outpost-world", "raidoutpost");
         config.options().copyDefaults(true);
         saveConfig();
-
-        raidOutpost = Bukkit.getWorld(config.getString("raiding-outpost-world"));
     }
 }
