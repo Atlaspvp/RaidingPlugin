@@ -1,10 +1,18 @@
 package net.atlaspvp.raidoutpost;
 
 import com.massivecraft.factions.*;
+import com.massivecraft.factions.event.FactionAutoDisbandEvent;
+import com.massivecraft.factions.event.FactionCreateEvent;
+import com.massivecraft.factions.event.FactionDisbandEvent;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
-import org.bukkit.*;
+import net.atlaspvp.raidoutpost.runnable.CaptureTimer;
+import net.atlaspvp.raidoutpost.runnable.RegenRo;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.HumanEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,24 +29,15 @@ import java.util.UUID;
 public class Listeners implements Listener {
 
     private final RaidOutpost raidOutpost;
-    private final RoMenu roMenu;
-    private final Config config;
+    private CaptureTimer captureTimer;
 
-    private final Object2LongOpenHashMap<Faction> raidMap;
     private final Object2LongOpenHashMap<UUID> teleportCooldown = new Object2LongOpenHashMap<>();
     private final Random random = new Random();
 
-    private final Faction ro = Factions.getInstance().getByTag("RaidOutpost");
-    private final Faction wilderness = Factions.getInstance().getWilderness();
-    private final Faction warzone = Factions.getInstance().getWarZone();
-
     private long lastBreachTime;
 
-    public Listeners(RaidOutpost raidOutpost, RoMenu roMenu, Object2LongOpenHashMap<Faction> raidMap, Config config) {
+    public Listeners(RaidOutpost raidOutpost) {
         this.raidOutpost = raidOutpost;
-        this.roMenu = roMenu;
-        this.config = config;
-        this.raidMap = raidMap;
     }
 
     @EventHandler
@@ -53,26 +52,38 @@ public class Listeners implements Listener {
         FLocation eventLocation = new FLocation(eventLoc);
         Faction eventFaction = Board.getInstance().getFactionAt(eventLocation);
 
-        //if (eventFaction.equals(wilderness)) return;
-        if (eventFaction.equals(warzone)) return;
+        if (eventFaction.equals(raidOutpost.getWilderness())) return;
+        if (eventFaction.equals(raidOutpost.getWarzone())) return;
 
         Faction spawnFaction = Board.getInstance().getFactionAt(new FLocation(tntPrimed.getSpawnLocation()));
 
         long currentTime = System.currentTimeMillis();
-        if (tntPrimed.getWorld().equals(config.getRaidWorld())) {
-            //if (!eventFaction.equals(raidingOutpostFaction)) return;
+        if (tntPrimed.getWorld().equals(raidOutpost.getConfigRo().getRaidWorld())) {
+            if (!eventFaction.equals(raidOutpost.getRo())) return;
 
-            if (!Utils.isCooldown(currentTime, lastBreachTime + config.getLockWildTeleport())) {
+            if (!Utils.isCooldown(currentTime, lastBreachTime + raidOutpost.getConfigRo().getLockWildTeleport())) {
                 event.setCancelled(true);
                 return;
-            } else if (Utils.isInsideXZ(eventLoc, config, 2)) {
+            } else if (Utils.isInsideXZ(eventLoc, raidOutpost.getConfigRo(), 2)) {
                 for (Block block : blockList) {
                     Location location = block.getLocation();
-                    if (Utils.isInsideXYZ(location, config, 0)) {
-                        this.lastBreachTime = currentTime;
-                        this.roMenu.closeRo(config.getLockWildTeleport());
+                    if (Utils.isInsideXYZ(location, raidOutpost.getConfigRo(), 0)) {
+                        if (captureTimer != null) {
+                            if (captureTimer.getFactionInventory().equals(raidOutpost.getFactionMap().get(spawnFaction))) {
+                                return;
+                            } else {
+                                captureTimer.cancel();
+                                captureTimer.getFactionInventory().setCurrentPhase(0);
+                            }
+                        }
+                        FactionInventory factionInventory = raidOutpost.getFactionMap().get(spawnFaction);
+                        factionInventory.setCaptures(factionInventory.getCaptures() + 1);
+                        captureTimer = new CaptureTimer(factionInventory, raidOutpost);
+                        captureTimer.runTaskLater(raidOutpost, raidOutpost.getConfigRo().getPhaseInterval());
+                        lastBreachTime = currentTime;
+                        raidOutpost.getRoMenu().closeRo(raidOutpost.getConfigRo().getLockWildTeleport());
                         teleportCooldown.clear();
-                        new RegenRo(raidOutpost, ro, spawnFaction, config).runTaskLater(raidOutpost, config.getRoRegenInterval());
+                        new RegenRo(raidOutpost, raidOutpost.getRo(), spawnFaction, raidOutpost.getConfigRo()).runTaskLater(raidOutpost, raidOutpost.getConfigRo().getRoRegenInterval());
                         break;
                     }
                 }
@@ -82,39 +93,63 @@ public class Listeners implements Listener {
 
         if (eventFaction.equals(spawnFaction)) return;
 
-        if (raidMap.containsKey(eventFaction)) {
-            if (currentTime - raidMap.get(eventFaction) < 100) return;
+        if (raidOutpost.getRaidMap().containsKey(eventFaction)) {
+            if (currentTime - raidOutpost.getRaidMap().get(eventFaction) < 100) return;
             if (blockList.contains(eventLoc.getBlock())){
-                raidMap.put(eventFaction, currentTime);
+                raidOutpost.getRaidMap().put(eventFaction, currentTime);
             }
         } else {
-            raidMap.put(eventFaction, currentTime);
-            spawnFaction.sendMessage(ChatColor.WHITE + "[" + ChatColor.RED +  "Raid Manager" + ChatColor.WHITE + "] " + ChatColor.RESET + config.getStartMSGRaider() + " " + eventFaction.getTag());
-            eventFaction.sendMessage(ChatColor.WHITE + "[" + ChatColor.RED +  "Raid Manager" + ChatColor.WHITE + "] " + ChatColor.RESET + spawnFaction.getTag() + " " + config.getStartMSGTarget());
+            raidOutpost.getRaidMap().put(eventFaction, currentTime);
+            spawnFaction.sendMessage(ChatColor.WHITE + "[" + ChatColor.RED +  "Raid Manager" + ChatColor.WHITE + "] " + ChatColor.RESET + raidOutpost.getConfigRo().getStartMSGRaider() + " " + eventFaction.getTag());
+            eventFaction.sendMessage(ChatColor.WHITE + "[" + ChatColor.RED +  "Raid Manager" + ChatColor.WHITE + "] " + ChatColor.RESET + spawnFaction.getTag() + " " + raidOutpost.getConfigRo().getStartMSGTarget());
         }
     }
 
     @EventHandler
     public void onBreak(BlockBreakEvent event) {
-        if (config.isPreventMining() && event.getBlock().getType().equals(Material.SPAWNER) && raidMap.containsKey(FPlayers.getInstance().getByPlayer(event.getPlayer()).getFaction())) {
+        if (raidOutpost.getConfigRo().isPreventMining() && event.getBlock().getType().equals(Material.SPAWNER) && raidOutpost.getRaidMap().containsKey(FPlayers.getInstance().getByPlayer(event.getPlayer()).getFaction())) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(ChatColor.RED + "You cannot mine spawners while being raided!");
         }
     }
 
     @EventHandler
+    public void onCreateFaction(FactionCreateEvent event) {
+        Faction faction = event.getFaction();
+        raidOutpost.getFactionMap().put(faction, new FactionInventory(0, 0, 0, faction));
+    }
+
+    @EventHandler
+    public void onDisbandFaction(FactionDisbandEvent event) {
+        raidOutpost.getFactionMap().remove(event.getFaction());
+    }
+
+    @EventHandler
+    public void onAutoDisbandFaction(FactionAutoDisbandEvent event) {
+        raidOutpost.getFactionMap().remove(event.getFaction());
+    }
+
+    @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Inventory inventory = event.getClickedInventory();
         ItemStack itemStack = event.getCurrentItem();
-        if (inventory == null || itemStack == null || !event.getView().getTitle().equalsIgnoreCase("Raid Outpost")) return;
+        String title = event.getView().getTitle();
+        if (inventory == null || itemStack == null || !title.equalsIgnoreCase("Raid Outpost") && !title.equalsIgnoreCase("Raid Outpost rewards")) return;
         event.setCancelled(true);
 
         HumanEntity player = event.getWhoClicked();
+        Faction faction = FPlayers.getInstance().getByPlayer((Player) player).getFaction();
+        FactionInventory factionInventory = raidOutpost.getFactionMap().get(faction);
+        Inventory inventory1 = null;
+        if (factionInventory != null) {
+            inventory1 = factionInventory.getInventory();
+        }
 
-        if (itemStack.getType() == Material.TNT) {
+        Material material = itemStack.getType();
+        if (material == Material.TNT && title.equalsIgnoreCase("Raid Outpost")) {
             boolean foundLocation = false;
             UUID uuid = player.getUniqueId();
-            if (teleportCooldown.containsKey(uuid) && System.currentTimeMillis() - config.getTeleportCooldown() < teleportCooldown.get(uuid)) {
+            if (teleportCooldown.containsKey(uuid) && !Utils.isCooldown(System.currentTimeMillis(), teleportCooldown.get(uuid) + raidOutpost.getConfigRo().getTeleportCooldown())) {
                 Utils.sendRoMessage(player, "You are on teleport cooldown");
                 return;
             }
@@ -122,7 +157,7 @@ public class Listeners implements Listener {
                 int x = random.nextInt(1599) - 799;
                 int y = 40;
                 int z = random.nextInt(1599) - 799;
-                Location location = new Location(config.getRaidWorld(), x, y, z);
+                Location location = new Location(raidOutpost.getConfigRo().getRaidWorld(), x, y, z);
 
                 if (!location.getBlock().isSolid()) {
                     player.teleport(location);
@@ -134,6 +169,21 @@ public class Listeners implements Listener {
             if (!foundLocation) {
                 Utils.sendRoMessage(player, "Could not find a location to teleport to");
             }
+        }
+        if (material == Material.CHEST && title.equalsIgnoreCase("Raid Outpost")) {
+            if (inventory1 == null) {
+                Utils.sendRoMessage(player, "You are not part of a faction");
+                return;
+            }
+            player.openInventory(inventory1);
+        }
+        if (title.equalsIgnoreCase("Raid Outpost rewards") && material == Material.EMERALD && inventory1 != null) {
+            int phase = Integer.parseInt(itemStack.getItemMeta().getDisplayName().replaceAll("\\D+", ""));
+            List<ItemStack> itemStackList = raidOutpost.getPhaseDataMap().get(phase).getItemStackList();
+            for (ItemStack itemStack1 : itemStackList) {
+                player.getInventory().addItem(itemStack1);
+            }
+            inventory1.remove(itemStack);
         }
     }
 }

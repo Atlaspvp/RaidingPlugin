@@ -18,6 +18,7 @@ public class Config {
     private final int factionLockdownTimer;
     private final int lockWildTeleport;
     private final int roRegenInterval;
+    private final int phaseInterval;
 
     private final String startMSGTarget;
     private final String startMSGRaider;
@@ -43,6 +44,7 @@ public class Config {
         config.addDefault("ro-gui-teleport-lock-time (ticks)", 2400);
         config.addDefault("ro-regen-interval (ticks)", 1200);
         config.addDefault("teleport-cooldown (milliseconds)", 300000);
+        config.addDefault("phase-interval", 72000);
 
         config.addDefault("prevent-mining-spawner", true);
 
@@ -62,31 +64,32 @@ public class Config {
         config.options().copyDefaults(true);
         raidOutpost.saveConfig();
 
-        this.raidWorld = Bukkit.createWorld(new WorldCreator(Objects.requireNonNull(config.getString("ro-world"))));
-        this.spawnWorld = Bukkit.createWorld(new WorldCreator(Objects.requireNonNull(config.getString("spawn-world"))));
-        this.raidWorldName = config.getString("ro-world");
+        raidWorld = Bukkit.createWorld(new WorldCreator(Objects.requireNonNull(config.getString("ro-world"))));
+        spawnWorld = Bukkit.createWorld(new WorldCreator(Objects.requireNonNull(config.getString("spawn-world"))));
+        raidWorldName = config.getString("ro-world");
 
-        this.timeout = config.getInt("faction-lockdown (ticks)");
-        this.factionLockdownTimer = config.getInt("faction-lockdown-check-timer (ticks)");
-        this.lockWildTeleport = config.getInt("ro-gui-teleport-lock-time (ticks)");
-        this.teleportCooldown = config.getInt("teleport-cooldown (milliseconds)");
-        this.roRegenInterval = config.getInt("ro-regen-interval (ticks)");
+        timeout = config.getInt("faction-lockdown (ticks)");
+        factionLockdownTimer = config.getInt("faction-lockdown-check-timer (ticks)");
+        lockWildTeleport = config.getInt("ro-gui-teleport-lock-time (ticks)");
+        teleportCooldown = config.getInt("teleport-cooldown (milliseconds)");
+        roRegenInterval = config.getInt("ro-regen-interval (ticks)");
+        phaseInterval = config.getInt("phase-interval");
 
-        this.startMSGTarget = config.getString("start-defend-msg");
-        this.startMSGRaider = config.getString("start-raid-msg");
-        this.endMSGTarget = config.getString("end-defend-msg");
+        startMSGTarget = config.getString("start-defend-msg");
+        startMSGRaider = config.getString("start-raid-msg");
+        endMSGTarget = config.getString("end-defend-msg");
 
-        this.preventMining = config.getBoolean("prevent-mining-spawner");
+        preventMining = config.getBoolean("prevent-mining-spawner");
 
-        this.minX = config.getInt("raiding-outpost-minX");
-        this.maxX = config.getInt("raiding-outpost-maxX");
-        this.minY = config.getInt("raiding-outpost-minY");
-        this.maxY = config.getInt("raiding-outpost-maxY");
-        this.minZ = config.getInt("raiding-outpost-minZ");
-        this.maxZ = config.getInt("raiding-outpost-maxZ");
+        minX = config.getInt("raiding-outpost-minX");
+        maxX = config.getInt("raiding-outpost-maxX");
+        minY = config.getInt("raiding-outpost-minY");
+        maxY = config.getInt("raiding-outpost-maxY");
+        minZ = config.getInt("raiding-outpost-minZ");
+        maxZ = config.getInt("raiding-outpost-maxZ");
 
-        this.sourceFolder = config.getString("source-folder");
-        this.targetFolder = config.getString("target-folder");
+        sourceFolder = config.getString("source-folder");
+        targetFolder = config.getString("target-folder");
     }
 
     public World getRaidWorld() {
@@ -123,6 +126,10 @@ public class Config {
 
     public int getRoRegenInterval() {
         return roRegenInterval;
+    }
+
+    public int getPhaseInterval() {
+        return phaseInterval;
     }
 
     public String getStartMSGTarget() {

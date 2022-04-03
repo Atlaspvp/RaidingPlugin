@@ -1,12 +1,16 @@
-package net.atlaspvp.raidoutpost;
+package net.atlaspvp.raidoutpost.runnable;
 
 import com.massivecraft.factions.Board;
 import com.massivecraft.factions.Faction;
 import com.massivecraft.factions.Factions;
+import net.atlaspvp.raidoutpost.Config;
+import net.atlaspvp.raidoutpost.RaidOutpost;
+import net.atlaspvp.raidoutpost.Utils;
 import org.bukkit.*;
 import org.bukkit.craftbukkit.libs.org.apache.commons.io.FileUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +23,7 @@ public class RegenRo extends BukkitRunnable {
     private final Faction ro;
     private final Faction capturedRo;
 
-    public RegenRo(RaidOutpost raidOutpost, Faction ro, Faction capturedRo, Config config) {
+    public RegenRo(RaidOutpost raidOutpost, Faction ro, @Nullable Faction capturedRo, Config config) {
         this.raidOutpost = raidOutpost;
         this.config = config;
         this.ro = ro;
@@ -29,7 +33,9 @@ public class RegenRo extends BukkitRunnable {
 
     private void messagePlayers(int time) {
         for (Player player : config.getRaidWorld().getPlayers()) {
-            Utils.sendRoMessage(player, "Raid outpost has been captured by " + capturedRo.getTag());
+            if (capturedRo != null) {
+                Utils.sendRoMessage(player, "Raid outpost has been captured by " + capturedRo.getTag());
+            }
             if (time == 1) {
                 Utils.sendRoMessage(player, "Raid outpost will reset in " + time + " minute");
             } else Utils.sendRoMessage(player, "Raid outpost will reset in " + time + " minutes");

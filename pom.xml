@@ -6,7 +6,7 @@
 
     <groupId>net.atlaspvp</groupId>
     <artifactId>raidoutpost</artifactId>
-    <version>1.1</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
 
     <name>RaidOutpost</name>
@@ -83,6 +83,13 @@
                     <artifactId>adventure-platform-bukkit</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>dbapi-1.1</groupId>
+            <artifactId>dbapi-1.1</artifactId>
+            <version>1.1</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/libs/dbapi-1.1.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>
