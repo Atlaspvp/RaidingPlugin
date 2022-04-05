@@ -21,6 +21,7 @@ public final class RaidOutpost extends JavaPlugin {
     private Faction ro;
     private Faction wilderness;
     private Faction warzone;
+    private boolean roLockdown = false;
 
     @Override
     public void onEnable() {
@@ -86,5 +87,13 @@ public final class RaidOutpost extends JavaPlugin {
 
     public RoMenu getRoMenu() {
         return roMenu;
+    }
+
+    public boolean isRoLockdown() {
+        return roLockdown;
+    }
+
+    public void setRoLockdown(boolean roLockdown) {
+        this.roLockdown = roLockdown;
     }
 }

@@ -1,7 +1,6 @@
 package net.atlaspvp.raidoutpost;
 
 import com.massivecraft.factions.Faction;
-import com.massivecraft.factions.perms.Relation;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.nbt.MojangsonParser;
 import org.bukkit.ChatColor;
@@ -89,9 +88,7 @@ public class Utils {
         roFaction.setCurrentPhase(1);
         giveRewards(raidOutpost, roFaction.getInventory(), 1);
         roFaction.setTime(System.currentTimeMillis() + raidOutpost.getConfigRo().getPhaseInterval() * 50L);
-        raidOutpost.getRo().setRelationWish(roFaction.getFaction(), Relation.ALLY);
         roFaction.startCaptureTimer(raidOutpost.getConfigRo().getPhaseInterval());
-        raidOutpost.getTeleportCooldown().clear();
         Runnable.regenRo(raidOutpost, spawnFaction);
     }
 
@@ -99,7 +96,6 @@ public class Utils {
         captureTimer.cancel();
         roFaction.setCurrentPhase(0);
         roFaction.setTime(0);
-        raidOutpost.getRo().setRelationWish(roFaction.getFaction(), Relation.NEUTRAL);
         raidOutpost.getRoMenu().getTnt().setLore(null);
     }
 
@@ -109,8 +105,6 @@ public class Utils {
         raidOutpost.getRoMenu().getTnt().setLore(null);
         captureTimer.cancel();
         roFaction.removeCaptureTimer();
-        raidOutpost.getTeleportCooldown().clear();
-        raidOutpost.getRo().setRelationWish(roFaction.getFaction(), Relation.NEUTRAL);
         Runnable.regenRo(raidOutpost, null);
     }
 
@@ -118,5 +112,13 @@ public class Utils {
         roFaction.setTime(System.currentTimeMillis() + raidOutpost.getConfigRo().getPhaseInterval() * 50L);
         roFaction.setCurrentPhase(roFaction.getCurrentPhase() + 1);
         giveRewards(raidOutpost, roFaction.getInventory(), roFaction.getCurrentPhase());
+    }
+
+    public static void refreshCapturePhaseDatabase(RaidOutpost raidOutpost, RoFaction roFaction) {
+        if (raidOutpost.getConfigRo().getPhaseInterval() - roFaction.getTime() <= raidOutpost.getConfigRo().getRoRegenInterval() && roFaction.getCurrentPhase() == 1) {
+            Runnable.regenRo(raidOutpost, null);
+        }
+        roFaction.setTime(System.currentTimeMillis() + roFaction.getTime());
+        roFaction.startCaptureTimer(roFaction.getTime() / 50);
     }
 }

@@ -35,6 +35,7 @@ public class Config {
 
     private final String sourceFolder;
     private final String targetFolder;
+    private final String serverFolder;
 
     public Config(RaidOutpost raidOutpost, Configuration config) {
         config.addDefault("ro-world", "ro");
@@ -63,6 +64,7 @@ public class Config {
 
         config.addDefault("source-folder", "");
         config.addDefault("target-folder", "");
+        config.addDefault("server-folder", "");
         config.options().copyDefaults(true);
         raidOutpost.saveConfig();
 
@@ -93,6 +95,7 @@ public class Config {
 
         sourceFolder = config.getString("source-folder");
         targetFolder = config.getString("target-folder");
+        serverFolder = config.getString("server-folder");
     }
 
     public World getRaidWorld() {
@@ -185,5 +188,9 @@ public class Config {
 
     public String getTargetFolder() {
         return targetFolder;
+    }
+
+    public String getServerFolder() {
+        return serverFolder;
     }
 }

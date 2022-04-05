@@ -31,6 +31,7 @@ public class Runnable {
     }
 
     public static void regenRo(RaidOutpost raidOutpost, @Nullable Faction capturedRo) {
+        raidOutpost.setRoLockdown(true);
         raidOutpost.getRoMenu().closeRo(raidOutpost.getConfigRo().getLockWildTeleport());
         World raidWorld = raidOutpost.getConfigRo().getRaidWorld();
         World spawnWorld = raidOutpost.getConfigRo().getSpawnWorld();
@@ -65,7 +66,8 @@ public class Runnable {
                                     @Override
                                     public void run() {
                                         try {
-                                            FileUtils.copyDirectoryToDirectory(new File(raidOutpost.getConfigRo().getSourceFolder()), new File(raidOutpost.getConfigRo().getTargetFolder()));
+                                            FileUtils.deleteDirectory(new File(raidOutpost.getConfigRo().getTargetFolder()));
+                                            FileUtils.copyDirectoryToDirectory(new File(raidOutpost.getConfigRo().getSourceFolder()), new File(raidOutpost.getConfigRo().getServerFolder()));
                                         } catch (IOException e) {
                                             e.printStackTrace();
                                         }
@@ -73,6 +75,7 @@ public class Runnable {
                                             @Override
                                             public void run() {
                                                 raidOutpost.getConfigRo().setRaidWorld(Bukkit.createWorld(new WorldCreator(raidOutpost.getConfigRo().getRaidWorldName())));
+                                                raidOutpost.getTeleportCooldown().clear();
                                             }
                                         }.runTask(raidOutpost);
                                     }

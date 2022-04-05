@@ -99,11 +99,16 @@ public class RoMenu implements CommandExecutor, InventoryHolder {
             @Override
             public void run() {
                 inventory.setItem(11, tnt);
+                raidOutpost.setRoLockdown(false);
             }
         }.runTaskLater(raidOutpost, noWildTeleport);
     }
 
     public ItemStack getTnt() {
         return tnt;
+    }
+
+    public ItemStack getMap() {
+        return map;
     }
 }

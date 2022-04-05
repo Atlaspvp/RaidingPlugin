@@ -89,11 +89,19 @@ public class Postgresql {
                 ps.setArray(2, connection.createArrayOf("VARCHAR", Utils.generateStringArray1(roFaction.getInventory())));
                 ps.setInt(3, roFaction.getCaptures());
                 ps.setInt(4, roFaction.getCurrentPhase());
-                ps.setLong(5, roFaction.getTime() - time);
+                if (roFaction.getTime() != 0) {
+                    ps.setLong(5, roFaction.getTime() - time);
+                } else {
+                    ps.setLong(5, 0);
+                }
                 ps.setArray(6, connection.createArrayOf("VARCHAR", Utils.generateStringArray1(roFaction.getInventory())));
                 ps.setInt(7, roFaction.getCaptures());
                 ps.setInt(8, roFaction.getCurrentPhase());
-                ps.setLong(9, roFaction.getTime() - time);
+                if (roFaction.getTime() != 0) {
+                    ps.setLong(9, roFaction.getTime() - time);
+                } else {
+                    ps.setLong(9, 0);
+                }
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -138,10 +146,8 @@ public class Postgresql {
                 Faction faction = Factions.getInstance().getByTag(resultSet.getString(1));
                 String[] strings = (String[]) resultSet.getArray(2).getArray();
                 RoFaction roFaction = new RoFaction(raidOutpost, faction, resultSet.getInt(3), resultSet.getInt(4), resultSet.getLong(5));
-                if (roFaction.getTime() != 0) {
-                    roFaction.startCaptureTimer(roFaction.getTime() / 50);
-                    roFaction.setTime(System.currentTimeMillis() + roFaction.getTime());
-                    raidOutpost.getRo().setRelationWish(roFaction.getFaction(), Relation.ALLY);
+                if (roFaction.getTime() > 0) {
+                    Utils.refreshCapturePhaseDatabase(raidOutpost, roFaction);
                 }
                 Inventory inventory = roFaction.getInventory();
                 for (String string : strings) {

@@ -18,6 +18,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -79,7 +80,7 @@ public class Listeners implements Listener {
                                 this.roFaction = null;
                             }
                         }
-                        raidOutpost.getFactionMap().computeIfAbsent(spawnFaction, k -> new RoFaction(raidOutpost, spawnFaction, 0, 0, System.currentTimeMillis() + raidOutpost.getConfigRo().getPhaseInterval()));
+                        raidOutpost.getFactionMap().computeIfAbsent(spawnFaction, k -> new RoFaction(raidOutpost, spawnFaction, 0, 0, 0));
                         this.roFaction = raidOutpost.getFactionMap().get(spawnFaction);
                         Utils.startCapture(raidOutpost, this.roFaction, spawnFaction, lore);
                         lastBreachTime = currentTime;
@@ -113,22 +114,37 @@ public class Listeners implements Listener {
     }
 
     @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        if (!event.getPlayer().getWorld().equals(raidOutpost.getConfigRo().getRaidWorld())) return;
+        if (!raidOutpost.isRoLockdown()) return;
+        event.getPlayer().teleport(raidOutpost.getConfigRo().getSpawnWorld().getSpawnLocation());
+    }
+
+    @EventHandler
     public void onDisbandFaction(FactionDisbandEvent event) {
         RoFaction roFaction = raidOutpost.getFactionMap().get(event.getFaction());
         if (roFaction == null) return;
-        ItemStack itemStack = raidOutpost.getRoMenu().getInventory().getItem(15);
-        if (itemStack != null) {
-            List<String> lore = itemStack.getLore();
-            if (lore != null) {
-                lore.remove(ChatColor.GRAY + "Controlled by: " + roFaction.getFaction().getTag());
-                itemStack.setLore(lore);
-            }
+        ItemStack map = raidOutpost.getRoMenu().getMap();
+        List<String> lore = map.getLore();
+        if (lore != null) {
+            lore.remove(ChatColor.GRAY + "Controlled by: " + roFaction.getFaction().getTag());
+            map.setLore(lore);
+            raidOutpost.getRoMenu().getInventory().setItem(15, map);
         }
         raidOutpost.getFactionMap().remove(event.getFaction());
     }
 
     @EventHandler
     public void onAutoDisbandFaction(FactionAutoDisbandEvent event) {
+        RoFaction roFaction = raidOutpost.getFactionMap().get(event.getFaction());
+        if (roFaction == null) return;
+        ItemStack map = raidOutpost.getRoMenu().getMap();
+        List<String> lore = map.getLore();
+        if (lore != null) {
+            lore.remove(ChatColor.GRAY + "Controlled by: " + roFaction.getFaction().getTag());
+            map.setLore(lore);
+            raidOutpost.getRoMenu().getInventory().setItem(15, map);
+        }
         raidOutpost.getFactionMap().remove(event.getFaction());
     }
 
@@ -137,7 +153,7 @@ public class Listeners implements Listener {
         Inventory inventory = event.getClickedInventory();
         ItemStack itemStack = event.getCurrentItem();
         String title = event.getView().getTitle();
-        if (inventory == null || itemStack == null || !title.equalsIgnoreCase("Raid Outpost") && !title.equalsIgnoreCase("Raid Outpost rewards")) return;
+        if (inventory == null || itemStack == null || !title.equalsIgnoreCase("Raid Outpost")) return;
         event.setCancelled(true);
 
         HumanEntity player = event.getWhoClicked();
