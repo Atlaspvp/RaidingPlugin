@@ -66,8 +66,8 @@ public class Runnable {
                                     @Override
                                     public void run() {
                                         try {
-                                            FileUtils.deleteDirectory(new File(raidOutpost.getConfigRo().getTargetFolder()));
-                                            FileUtils.copyDirectoryToDirectory(new File(raidOutpost.getConfigRo().getSourceFolder()), new File(raidOutpost.getConfigRo().getServerFolder()));
+                                            FileUtils.cleanDirectory(new File(raidOutpost.getConfigRo().getTargetFolder()));
+                                            FileUtils.copyDirectoryToDirectory(new File(raidOutpost.getConfigRo().getSourceFolder()), new File(raidOutpost.getConfigRo().getTargetFolder()));
                                         } catch (IOException e) {
                                             e.printStackTrace();
                                         }

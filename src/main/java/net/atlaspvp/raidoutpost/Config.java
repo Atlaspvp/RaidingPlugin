@@ -189,8 +189,4 @@ public class Config {
     public String getTargetFolder() {
         return targetFolder;
     }
-
-    public String getServerFolder() {
-        return serverFolder;
-    }
 }

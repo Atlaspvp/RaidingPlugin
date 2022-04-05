@@ -70,7 +70,7 @@
             <artifactId>Paper-Server-reobf</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/libs/Paper-Server-reobf.jar</systemPath>
+            <systemPath>${basedir}/libs/AtlasSpigot.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.massivecraft</groupId>
