@@ -1,27 +1,33 @@
 package net.atlaspvp.raidoutpost;
 
 import com.massivecraft.factions.Faction;
-import net.atlaspvp.raidoutpost.runnable.CaptureTimer;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class FactionInventory implements InventoryHolder {
+public class RoFaction implements InventoryHolder {
 
+    private final RaidOutpost raidOutpost;
+    private final Faction faction;
     private final Inventory inventory = Bukkit.createInventory(this, 27, "Raid Outpost rewards");
     private int captures;
     private int currentPhase;
     private long time;
     private CaptureTimer captureTimer;
-    private final Faction faction;
 
-    public FactionInventory(int captures, int currentPhase, long time, Faction faction) {
+    public RoFaction(RaidOutpost raidOutpost, Faction faction, int captures, int currentPhase, long time) {
+        this.raidOutpost = raidOutpost;
+        this.faction = faction;
         this.captures = captures;
         this.currentPhase = currentPhase;
         this.time = time;
-        this.faction = faction;
+    }
+
+    public void startCaptureTimer(long ticks) {
+        new CaptureTimer(raidOutpost, this).runTaskLater(raidOutpost, ticks);
     }
 
     @Override
@@ -63,5 +69,29 @@ public class FactionInventory implements InventoryHolder {
 
     public Faction getFaction() {
         return faction;
+    }
+
+    public void removeCaptureTimer() {captureTimer = null;};
+}
+
+class CaptureTimer extends BukkitRunnable {
+
+    private final RaidOutpost raidOutpost;
+    private final RoFaction roFaction;
+
+    public CaptureTimer(RaidOutpost raidOutpost, RoFaction roFaction) {
+        this.raidOutpost = raidOutpost;
+        this.roFaction = roFaction;
+        roFaction.setCaptureTimer(this);
+    }
+
+    @Override
+    public void run() {
+        Utils.refreshCapturePhase(raidOutpost, roFaction);
+        if (roFaction.getCurrentPhase() == 7) {
+            Utils.autoStopCapture(raidOutpost, roFaction, this);
+            return;
+        }
+        new CaptureTimer(raidOutpost, roFaction).runTaskLater(raidOutpost, raidOutpost.getConfigRo().getPhaseInterval());
     }
 }

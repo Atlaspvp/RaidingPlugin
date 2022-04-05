@@ -19,6 +19,7 @@ public class Config {
     private final int lockWildTeleport;
     private final int roRegenInterval;
     private final int phaseInterval;
+    private final int saveRoFactionTimerAndItemStacks;
 
     private final String startMSGTarget;
     private final String startMSGRaider;
@@ -44,7 +45,8 @@ public class Config {
         config.addDefault("ro-gui-teleport-lock-time (ticks)", 2400);
         config.addDefault("ro-regen-interval (ticks)", 1200);
         config.addDefault("teleport-cooldown (milliseconds)", 300000);
-        config.addDefault("phase-interval", 72000);
+        config.addDefault("phase-interval (ticks)", 72000);
+        config.addDefault("save-ro-faction-and-itemstacks-timer (ticks)", 72000);
 
         config.addDefault("prevent-mining-spawner", true);
 
@@ -73,7 +75,8 @@ public class Config {
         lockWildTeleport = config.getInt("ro-gui-teleport-lock-time (ticks)");
         teleportCooldown = config.getInt("teleport-cooldown (milliseconds)");
         roRegenInterval = config.getInt("ro-regen-interval (ticks)");
-        phaseInterval = config.getInt("phase-interval");
+        phaseInterval = config.getInt("phase-interval (ticks)");
+        saveRoFactionTimerAndItemStacks = config.getInt("save-ro-faction-and-itemstacks-timer (ticks)");
 
         startMSGTarget = config.getString("start-defend-msg");
         startMSGRaider = config.getString("start-raid-msg");
@@ -130,6 +133,10 @@ public class Config {
 
     public int getPhaseInterval() {
         return phaseInterval;
+    }
+
+    public int getSaveRoFactionTimer() {
+        return saveRoFactionTimerAndItemStacks;
     }
 
     public String getStartMSGTarget() {

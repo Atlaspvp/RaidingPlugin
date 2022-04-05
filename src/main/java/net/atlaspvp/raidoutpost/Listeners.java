@@ -1,12 +1,11 @@
 package net.atlaspvp.raidoutpost;
 
-import com.massivecraft.factions.*;
+import com.massivecraft.factions.Board;
+import com.massivecraft.factions.FLocation;
+import com.massivecraft.factions.FPlayers;
+import com.massivecraft.factions.Faction;
 import com.massivecraft.factions.event.FactionAutoDisbandEvent;
-import com.massivecraft.factions.event.FactionCreateEvent;
 import com.massivecraft.factions.event.FactionDisbandEvent;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
-import net.atlaspvp.raidoutpost.runnable.CaptureTimer;
-import net.atlaspvp.raidoutpost.runnable.RegenRo;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -22,6 +21,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -29,10 +29,10 @@ import java.util.UUID;
 public class Listeners implements Listener {
 
     private final RaidOutpost raidOutpost;
-    private CaptureTimer captureTimer;
 
-    private final Object2LongOpenHashMap<UUID> teleportCooldown = new Object2LongOpenHashMap<>();
     private final Random random = new Random();
+    private RoFaction roFaction;
+    private final List<String> lore = new ArrayList<>(1);
 
     private long lastBreachTime;
 
@@ -68,23 +68,22 @@ public class Listeners implements Listener {
                 for (Block block : blockList) {
                     Location location = block.getLocation();
                     if (Utils.isInsideXYZ(location, raidOutpost.getConfigRo(), 0)) {
-                        if (captureTimer != null) {
-                            if (captureTimer.getFactionInventory().equals(raidOutpost.getFactionMap().get(spawnFaction))) {
-                                return;
+                        RoFaction roFaction = raidOutpost.getFactionMap().get(spawnFaction);
+                        if (roFaction != null && roFaction.getCaptureTimer() != null) {
+                            return;
+                        } else if (this.roFaction != null) {
+                            CaptureTimer captureTimer = this.roFaction.getCaptureTimer();
+                            if (captureTimer != null) {
+                                Utils.stopCapture(raidOutpost, this.roFaction, captureTimer);
                             } else {
-                                captureTimer.cancel();
-                                captureTimer.getFactionInventory().setCurrentPhase(0);
+                                this.roFaction = null;
                             }
                         }
-                        FactionInventory factionInventory = raidOutpost.getFactionMap().get(spawnFaction);
-                        factionInventory.setCaptures(factionInventory.getCaptures() + 1);
-                        captureTimer = new CaptureTimer(factionInventory, raidOutpost);
-                        captureTimer.runTaskLater(raidOutpost, raidOutpost.getConfigRo().getPhaseInterval());
+                        raidOutpost.getFactionMap().computeIfAbsent(spawnFaction, k -> new RoFaction(raidOutpost, spawnFaction, 0, 0, System.currentTimeMillis() + raidOutpost.getConfigRo().getPhaseInterval()));
+                        this.roFaction = raidOutpost.getFactionMap().get(spawnFaction);
+                        Utils.startCapture(raidOutpost, this.roFaction, spawnFaction, lore);
                         lastBreachTime = currentTime;
-                        raidOutpost.getRoMenu().closeRo(raidOutpost.getConfigRo().getLockWildTeleport());
-                        teleportCooldown.clear();
-                        new RegenRo(raidOutpost, raidOutpost.getRo(), spawnFaction, raidOutpost.getConfigRo()).runTaskLater(raidOutpost, raidOutpost.getConfigRo().getRoRegenInterval());
-                        break;
+                        return;
                     }
                 }
             }
@@ -94,7 +93,7 @@ public class Listeners implements Listener {
         if (eventFaction.equals(spawnFaction)) return;
 
         if (raidOutpost.getRaidMap().containsKey(eventFaction)) {
-            if (currentTime - raidOutpost.getRaidMap().get(eventFaction) < 100) return;
+            if (Utils.isCooldown(currentTime, raidOutpost.getRaidMap().get(eventFaction) + 100)) return;
             if (blockList.contains(eventLoc.getBlock())){
                 raidOutpost.getRaidMap().put(eventFaction, currentTime);
             }
@@ -114,13 +113,17 @@ public class Listeners implements Listener {
     }
 
     @EventHandler
-    public void onCreateFaction(FactionCreateEvent event) {
-        Faction faction = event.getFaction();
-        raidOutpost.getFactionMap().put(faction, new FactionInventory(0, 0, 0, faction));
-    }
-
-    @EventHandler
     public void onDisbandFaction(FactionDisbandEvent event) {
+        RoFaction roFaction = raidOutpost.getFactionMap().get(event.getFaction());
+        if (roFaction == null) return;
+        ItemStack itemStack = raidOutpost.getRoMenu().getInventory().getItem(15);
+        if (itemStack != null) {
+            List<String> lore = itemStack.getLore();
+            if (lore != null) {
+                lore.remove(ChatColor.GRAY + "Controlled by: " + roFaction.getFaction().getTag());
+                itemStack.setLore(lore);
+            }
+        }
         raidOutpost.getFactionMap().remove(event.getFaction());
     }
 
@@ -139,17 +142,17 @@ public class Listeners implements Listener {
 
         HumanEntity player = event.getWhoClicked();
         Faction faction = FPlayers.getInstance().getByPlayer((Player) player).getFaction();
-        FactionInventory factionInventory = raidOutpost.getFactionMap().get(faction);
+        RoFaction roFaction = raidOutpost.getFactionMap().get(faction);
         Inventory inventory1 = null;
-        if (factionInventory != null) {
-            inventory1 = factionInventory.getInventory();
+        if (roFaction != null) {
+            inventory1 = roFaction.getInventory();
         }
 
         Material material = itemStack.getType();
         if (material == Material.TNT && title.equalsIgnoreCase("Raid Outpost")) {
             boolean foundLocation = false;
             UUID uuid = player.getUniqueId();
-            if (teleportCooldown.containsKey(uuid) && !Utils.isCooldown(System.currentTimeMillis(), teleportCooldown.get(uuid) + raidOutpost.getConfigRo().getTeleportCooldown())) {
+            if (raidOutpost.getTeleportCooldown().containsKey(uuid) && !Utils.isCooldown(System.currentTimeMillis(), raidOutpost.getTeleportCooldown().get(uuid) + raidOutpost.getConfigRo().getTeleportCooldown())) {
                 Utils.sendRoMessage(player, "You are on teleport cooldown");
                 return;
             }
@@ -161,7 +164,7 @@ public class Listeners implements Listener {
 
                 if (!location.getBlock().isSolid()) {
                     player.teleport(location);
-                    teleportCooldown.put(uuid, System.currentTimeMillis());
+                    raidOutpost.getTeleportCooldown().put(uuid, System.currentTimeMillis());
                     foundLocation = true;
                     break;
                 }
@@ -172,18 +175,11 @@ public class Listeners implements Listener {
         }
         if (material == Material.CHEST && title.equalsIgnoreCase("Raid Outpost")) {
             if (inventory1 == null) {
-                Utils.sendRoMessage(player, "You are not part of a faction");
+                Utils.sendRoMessage(player, "Your faction needs to capture Raid Outpost at least once");
                 return;
             }
+            inventory.close();
             player.openInventory(inventory1);
-        }
-        if (title.equalsIgnoreCase("Raid Outpost rewards") && material == Material.EMERALD && inventory1 != null) {
-            int phase = Integer.parseInt(itemStack.getItemMeta().getDisplayName().replaceAll("\\D+", ""));
-            List<ItemStack> itemStackList = raidOutpost.getPhaseDataMap().get(phase).getItemStackList();
-            for (ItemStack itemStack1 : itemStackList) {
-                player.getInventory().addItem(itemStack1);
-            }
-            inventory1.remove(itemStack);
         }
     }
 }

@@ -2,10 +2,9 @@ package net.atlaspvp.raidoutpost;
 
 import com.massivecraft.factions.Faction;
 import com.massivecraft.factions.Factions;
+import com.massivecraft.factions.perms.Relation;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import net.atlaspvp.dbapi.Dbapi;
@@ -16,6 +15,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -24,6 +24,7 @@ import java.util.List;
 public class Postgresql {
 
     public static boolean isDisabled = false;
+    private static final List<String> lore = new ArrayList<>(5);
 
     private static void closeConnection(Connection connection) {
         try {
@@ -45,7 +46,7 @@ public class Postgresql {
         }
 
         try {
-            PreparedStatement ps = connection.prepareStatement("CREATE TABLE IF NOT EXISTS raidoutpost (faction VARCHAR PRIMARY KEY, rewardlist INTEGER[], captures INTEGER, currentphase INTEGER, time BIGINT)");
+            PreparedStatement ps = connection.prepareStatement("CREATE TABLE IF NOT EXISTS raidoutpost (faction VARCHAR PRIMARY KEY, rewardlist VARCHAR[], captures INTEGER, currentphase INTEGER, time BIGINT)");
             ps.executeUpdate();
             ps.close();
         } catch (SQLException e) {
@@ -64,9 +65,9 @@ public class Postgresql {
         closeConnection(connection);
     }
 
-    public static void saveFaction(Object2ObjectOpenHashMap<Faction, FactionInventory> inventoryMap) {
+    public static void saveFaction(RaidOutpost raidOutpost) {
         if (isDisabled) return;
-        if (inventoryMap.isEmpty()) return;
+        if (raidOutpost.getFactionMap().isEmpty()) return;
         Connection connection;
 
         try {
@@ -75,23 +76,24 @@ public class Postgresql {
             e.printStackTrace();
             return;
         }
-        ObjectIterator<Object2ObjectMap.Entry<Faction, FactionInventory>> iterator = inventoryMap.object2ObjectEntrySet().fastIterator();
-        ObjectSet<Faction> objectSet = inventoryMap.keySet();
+        ObjectIterator<Object2ObjectMap.Entry<Faction, RoFaction>> iterator = raidOutpost.getFactionMap().object2ObjectEntrySet().fastIterator();
+        ObjectSet<Faction> objectSet = raidOutpost.getFactionMap().keySet();
 
         try {
             PreparedStatement ps = connection.prepareStatement("INSERT INTO raidoutpost (faction, rewardlist, captures, currentphase, time) VALUES (?, ?, ?, ?, ?) ON CONFLICT (faction) DO UPDATE SET rewardlist=?, captures=?, currentphase=?, time=?");
             while (iterator.hasNext()) {
-                Object2ObjectMap.Entry<Faction, FactionInventory> pair = iterator.next();
-                FactionInventory factionInventory = pair.getValue();
+                Object2ObjectMap.Entry<Faction, RoFaction> pair = iterator.next();
+                RoFaction roFaction = pair.getValue();
+                long time = System.currentTimeMillis();
                 ps.setString(1, pair.getKey().getTag());
-                ps.setArray(2, connection.createArrayOf("INTEGER", Utils.generateIntegerArray(factionInventory.getInventory())));
-                ps.setInt(3, factionInventory.getCaptures());
-                ps.setInt(4, factionInventory.getCurrentPhase());
-                ps.setLong(5, factionInventory.getTime());
-                ps.setArray(6, connection.createArrayOf("INTEGER", Utils.generateIntegerArray(factionInventory.getInventory())));
-                ps.setInt(7, factionInventory.getCaptures());
-                ps.setInt(8, factionInventory.getCurrentPhase());
-                ps.setLong(9, factionInventory.getTime());
+                ps.setArray(2, connection.createArrayOf("VARCHAR", Utils.generateStringArray1(roFaction.getInventory())));
+                ps.setInt(3, roFaction.getCaptures());
+                ps.setInt(4, roFaction.getCurrentPhase());
+                ps.setLong(5, roFaction.getTime() - time);
+                ps.setArray(6, connection.createArrayOf("VARCHAR", Utils.generateStringArray1(roFaction.getInventory())));
+                ps.setInt(7, roFaction.getCaptures());
+                ps.setInt(8, roFaction.getCurrentPhase());
+                ps.setLong(9, roFaction.getTime() - time);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -117,9 +119,81 @@ public class Postgresql {
         closeConnection(connection);
     }
 
-    public static void saveItemStacks(Int2ObjectOpenHashMap<PhaseData> phaseDataMap) {
+    public static void readFaction(RaidOutpost raidOutpost) {
+        Connection connection;
+
+        try {
+            connection = Dbapi.getHikariConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            setDisabled(raidOutpost);
+            return;
+        }
+
+        try {
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM raidoutpost");
+            ResultSet resultSet = ps.executeQuery();
+
+            while (resultSet.next()) {
+                Faction faction = Factions.getInstance().getByTag(resultSet.getString(1));
+                String[] strings = (String[]) resultSet.getArray(2).getArray();
+                RoFaction roFaction = new RoFaction(raidOutpost, faction, resultSet.getInt(3), resultSet.getInt(4), resultSet.getLong(5));
+                if (roFaction.getTime() != 0) {
+                    roFaction.startCaptureTimer(roFaction.getTime() / 50);
+                    roFaction.setTime(System.currentTimeMillis() + roFaction.getTime());
+                    raidOutpost.getRo().setRelationWish(roFaction.getFaction(), Relation.ALLY);
+                }
+                Inventory inventory = roFaction.getInventory();
+                for (String string : strings) {
+                    inventory.addItem(Utils.readPersistentString(string));
+                }
+                raidOutpost.getFactionMap().put(faction, roFaction);
+            }
+            resultSet.close();
+            ps.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            setDisabled(raidOutpost);
+        }
+        closeConnection(connection);
+    }
+
+    public static void readLeaderboard(RaidOutpost raidOutpost, ItemStack map) {
+        Connection connection;
+        if (map == null) return;
+
+        try {
+            connection = Dbapi.getHikariConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        try {
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM raidoutpost ORDER BY captures DESC LIMIT 5");
+            ResultSet resultSet = ps.executeQuery();
+
+            lore.clear();
+            while (resultSet.next()) {
+                lore.add(ChatColor.WHITE + resultSet.getString(1) + ": " + resultSet.getInt(3));
+            }
+            resultSet.close();
+            ps.close();
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    map.setLore(lore);
+                }
+            }.runTask(raidOutpost);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        closeConnection(connection);
+    }
+
+    public static void saveItemStacks(RaidOutpost raidOutpost) {
         if (isDisabled) return;
-        if (phaseDataMap.isEmpty()) return;
+        if (raidOutpost.getPhaseDataMap().isEmpty()) return;
         Connection connection;
 
         try {
@@ -128,7 +202,7 @@ public class Postgresql {
             e.printStackTrace();
             return;
         }
-        ObjectIterator<Int2ObjectMap.Entry<PhaseData>> iterator = phaseDataMap.int2ObjectEntrySet().fastIterator();
+        ObjectIterator<Int2ObjectMap.Entry<PhaseData>> iterator = raidOutpost.getPhaseDataMap().int2ObjectEntrySet().fastIterator();
 
         try {
             PreparedStatement ps = connection.prepareStatement("INSERT INTO raidoutpostrewards (phase, rewards) VALUES (?, ?) ON CONFLICT (phase) DO UPDATE SET rewards=?");
@@ -147,7 +221,7 @@ public class Postgresql {
         closeConnection(connection);
     }
 
-    public static void readItemStacks(Int2ObjectOpenHashMap<PhaseData> phaseDataMap) {
+    public static void readItemStacks(RaidOutpost raidOutpost) {
         if (isDisabled) return;
         Connection connection;
 
@@ -155,6 +229,7 @@ public class Postgresql {
             connection = Dbapi.getHikariConnection();
         } catch (SQLException e) {
             e.printStackTrace();
+            setDisabled(raidOutpost);
             return;
         }
 
@@ -168,7 +243,7 @@ public class Postgresql {
                     ItemMeta emeraldMeta = emerald.getItemMeta();
                     emeraldMeta.setDisplayName(ChatColor.RESET + "Phase " + i);
                     emerald.setItemMeta(emeraldMeta);
-                    phaseDataMap.put(i, new PhaseData(new ArrayList<>(), emerald));
+                    raidOutpost.getPhaseDataMap().put(i, new PhaseData(new ArrayList<>(), emerald));
                 }
             }
 
@@ -196,44 +271,13 @@ public class Postgresql {
                 }
                 emeraldMeta.setLore(lore);
                 emerald.setItemMeta(emeraldMeta);
-                phaseDataMap.put(phase, new PhaseData(itemStackList, emerald));
-            }
-            resultSet.close();
-            ps.close();
-        } catch (SQLException e) {e.printStackTrace();}
-        closeConnection(connection);
-    }
-
-    public static void readFaction(Plugin plugin, Object2ObjectOpenHashMap<Faction, FactionInventory> factionMap, Int2ObjectOpenHashMap<PhaseData> phaseDataMap) {
-        Connection connection;
-
-        try {
-            connection = Dbapi.getHikariConnection();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            setDisabled(plugin);
-            return;
-        }
-
-        try {
-            PreparedStatement ps = connection.prepareStatement("SELECT * FROM raidoutpost");
-            ResultSet resultSet = ps.executeQuery();
-
-            while (resultSet.next()) {
-                Faction faction = Factions.getInstance().getByTag(resultSet.getString(1));
-                Integer[] integers = (Integer[]) resultSet.getArray(2).getArray();
-                FactionInventory factionInventory = new FactionInventory(resultSet.getInt(3), resultSet.getInt(4), resultSet.getLong(5), faction);
-                Inventory inventory = factionInventory.getInventory();
-                for (int phase : integers) {
-                    inventory.addItem(phaseDataMap.get(phase).getPhase());
-                }
-                factionMap.put(faction, factionInventory);
+                raidOutpost.getPhaseDataMap().put(phase, new PhaseData(itemStackList, emerald));
             }
             resultSet.close();
             ps.close();
         } catch (SQLException e) {
             e.printStackTrace();
-            setDisabled(plugin);
+            setDisabled(raidOutpost);
         }
         closeConnection(connection);
     }

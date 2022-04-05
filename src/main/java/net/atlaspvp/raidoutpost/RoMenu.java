@@ -73,7 +73,6 @@ public class RoMenu implements CommandExecutor, InventoryHolder {
         barrierMeta.setDisplayName(ChatColor.WHITE + "Raid outpost captured");
         barrier.setItemMeta(barrierMeta);
 
-
         byte slot = 28;
         for (int i = 1; i < 8; i++) {
             getInventory().setItem(slot, raidOutpost.getPhaseDataMap().get(i).getPhase());
@@ -102,5 +101,9 @@ public class RoMenu implements CommandExecutor, InventoryHolder {
                 inventory.setItem(11, tnt);
             }
         }.runTaskLater(raidOutpost, noWildTeleport);
+    }
+
+    public ItemStack getTnt() {
+        return tnt;
     }
 }

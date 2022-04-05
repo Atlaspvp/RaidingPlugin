@@ -8,12 +8,14 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public final class RaidOutpost extends JavaPlugin {
 
     private final Object2LongOpenHashMap<Faction> raidMap = new Object2LongOpenHashMap<>();
-    private final Object2ObjectOpenHashMap<Faction, FactionInventory> factionMap = new Object2ObjectOpenHashMap<>();
+    private final Object2ObjectOpenHashMap<Faction, RoFaction> factionMap = new Object2ObjectOpenHashMap<>();
     private final Int2ObjectOpenHashMap<PhaseData> phaseDataMap = new Int2ObjectOpenHashMap<>();
+    private final Object2LongOpenHashMap<UUID> teleportCooldown = new Object2LongOpenHashMap<>();
     private Config config;
     private RoMenu roMenu;
     private Faction ro;
@@ -23,11 +25,9 @@ public final class RaidOutpost extends JavaPlugin {
     @Override
     public void onEnable() {
         Postgresql.createTable(this);
-        Postgresql.readItemStacks(phaseDataMap);
-        Postgresql.readFaction(this, factionMap, phaseDataMap);
+        Postgresql.readItemStacks(this);
+        roMenu = new RoMenu(this);
         config = new Config(this, getConfig());
-        new Timer(this).runTaskTimer(this, 0, config.getFactionLockdownTimer());
-
         if (!Factions.getInstance().isTagTaken("RaidOutpost")) {
             Faction outpost = Factions.getInstance().createFaction();
             outpost.setPermanent(true);
@@ -35,29 +35,37 @@ public final class RaidOutpost extends JavaPlugin {
             outpost.setTag("RaidOutpost");
         }
         ro = Factions.getInstance().getByTag("RaidOutpost");
+        Postgresql.readFaction(this);
+        Runnable.factionRaidTimer(this);
+        Postgresql.readLeaderboard(this, this.getRoMenu().getInventory().getItem(15));
+        Runnable.startAllDatabaseRunnables(this, this.getRoMenu().getInventory().getItem(15));
+
         wilderness = Factions.getInstance().getWilderness();
         warzone = Factions.getInstance().getWarZone();
-        roMenu = new RoMenu(this);
         getServer().getPluginManager().registerEvents(new Listeners(this), this);
         Objects.requireNonNull(getCommand("RaidOutpost")).setExecutor(roMenu);
     }
 
     @Override
     public void onDisable() {
-        Postgresql.saveItemStacks(phaseDataMap);
-        Postgresql.saveFaction(factionMap);
+        Postgresql.saveItemStacks(this);
+        Postgresql.saveFaction(this);
     }
 
     public Object2LongOpenHashMap<Faction> getRaidMap() {
         return raidMap;
     }
 
-    public Object2ObjectOpenHashMap<Faction, FactionInventory> getFactionMap() {
+    public Object2ObjectOpenHashMap<Faction, RoFaction> getFactionMap() {
         return factionMap;
     }
 
     public Int2ObjectOpenHashMap<PhaseData> getPhaseDataMap() {
         return phaseDataMap;
+    }
+
+    public Object2LongOpenHashMap<UUID> getTeleportCooldown() {
+        return teleportCooldown;
     }
 
     public Faction getRo() {
