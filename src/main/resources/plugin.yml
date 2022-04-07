@@ -1,5 +1,5 @@
 name: RaidOutpost
-version: 1.4
+version: 1.5
 main: net.atlaspvp.raidoutpost.RaidOutpost
 api-version: 1.17
 authors: [ Gromit ]
