@@ -7,6 +7,8 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -16,6 +18,7 @@ public final class RaidOutpost extends JavaPlugin {
     private final Object2ObjectOpenHashMap<Faction, RoFaction> factionMap = new Object2ObjectOpenHashMap<>();
     private final Int2ObjectOpenHashMap<PhaseData> phaseDataMap = new Int2ObjectOpenHashMap<>();
     private final Object2LongOpenHashMap<UUID> teleportCooldown = new Object2LongOpenHashMap<>();
+    private final List<String> lore = new ArrayList<>(1);
     private GlobalTimer globalTimer;
     private RoFaction currentRoFaction;
     private Config config;
@@ -110,5 +113,9 @@ public final class RaidOutpost extends JavaPlugin {
 
     public void setCurrentRoFaction(RoFaction currentRoFaction) {
         this.currentRoFaction = currentRoFaction;
+    }
+
+    public List<String> getLore() {
+        return lore;
     }
 }

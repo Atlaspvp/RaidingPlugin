@@ -35,7 +35,10 @@ public class PhaseData {
         }
         getItemStackList().add(itemStack);
         ItemMeta itemMeta = getPhase().getItemMeta();
-        List<String> lore = new ArrayList<>();
+        List<String> lore = getPhase().getLore();
+        if (lore == null) {
+            lore = new ArrayList<>();
+        }
         ItemStack itemStack1 = itemStack.clone();
         if (!itemStack1.hasItemMeta()) {
             lore.add(ChatColor.GRAY + itemStack1.getI18NDisplayName() + " x " + itemStack1.getAmount());

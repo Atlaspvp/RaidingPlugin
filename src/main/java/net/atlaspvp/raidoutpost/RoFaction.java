@@ -15,18 +15,20 @@ public class RoFaction implements InventoryHolder {
     private int captures;
     private int currentPhase;
     private long time;
+    private boolean refreshPhase;
     private CaptureTimer captureTimer;
 
-    public RoFaction(RaidOutpost raidOutpost, Faction faction, int captures, int currentPhase, long time) {
+    public RoFaction(RaidOutpost raidOutpost, Faction faction, int captures, int currentPhase, long time, boolean refreshPhase) {
         this.raidOutpost = raidOutpost;
         this.faction = faction;
         this.captures = captures;
         this.currentPhase = currentPhase;
         this.time = time;
+        this.refreshPhase = refreshPhase;
     }
 
     public void startCaptureTimer(long delay) {
-        raidOutpost.getGlobalTimer().scheduleTask(new CaptureTimer(raidOutpost, this, delay));
+        new CaptureTimer(raidOutpost, this, delay);
     }
 
     @Override
@@ -71,6 +73,14 @@ public class RoFaction implements InventoryHolder {
     }
 
     public void removeCaptureTimer() {captureTimer = null;};
+
+    public boolean isRefreshPhase() {
+        return refreshPhase;
+    }
+
+    public void setRefreshPhase(boolean refreshPhase) {
+        this.refreshPhase = refreshPhase;
+    }
 }
 
 class CaptureTimer extends RealTimeRunnable {
@@ -92,6 +102,6 @@ class CaptureTimer extends RealTimeRunnable {
             Utils.autoStopCapture(raidOutpost, roFaction, this);
             return;
         }
-        raidOutpost.getGlobalTimer().scheduleTask(new CaptureTimer(raidOutpost, roFaction, raidOutpost.getConfigRo().getPhaseInterval() * 50L));
+        new CaptureTimer(raidOutpost, roFaction, raidOutpost.getConfigRo().getPhaseInterval() * 50L);
     }
 }

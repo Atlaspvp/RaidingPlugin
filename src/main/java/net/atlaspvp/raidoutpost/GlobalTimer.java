@@ -4,13 +4,13 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 
 public class GlobalTimer extends BukkitRunnable {
 
     private final RaidOutpost raidOutpost;
     private final List<RealTimeRunnable> runnables = new ArrayList<>();
     private long compareTime = System.currentTimeMillis();
-    private long delta;
 
     public GlobalTimer(RaidOutpost raidOutpost) {
         this.raidOutpost = raidOutpost;
@@ -19,23 +19,27 @@ public class GlobalTimer extends BukkitRunnable {
 
     @Override
     public void run() {
-        delta = System.currentTimeMillis() - compareTime;
+        long delta = System.currentTimeMillis() - compareTime;
         if (raidOutpost.getCurrentRoFaction() != null && raidOutpost.getCurrentRoFaction().getTime() > 0) {
-            raidOutpost.getCurrentRoFaction().setTime(raidOutpost.getCurrentRoFaction().getTime() - delta);
+            long time = raidOutpost.getCurrentRoFaction().getTime() - delta;
+            if (time < 0) raidOutpost.getCurrentRoFaction().setTime(0);
+            else raidOutpost.getCurrentRoFaction().setTime(raidOutpost.getCurrentRoFaction().getTime() - delta);
         }
         compareTime = System.currentTimeMillis();
         if (runnables.isEmpty()) return;
 
-        for (RealTimeRunnable runnable : runnables) {
+        ListIterator<RealTimeRunnable> iterator = runnables.listIterator();
+        while (iterator.hasNext()) {
+            RealTimeRunnable runnable = iterator.next();
             if (runnable.canRun()) {
                 runnable.runTask();
-                runnables.remove(runnable);
+                iterator.remove();
             }
         }
     }
 
-    public void scheduleTask(RealTimeRunnable runnable) {
-        runnables.add(runnable);
+    public List<RealTimeRunnable> getRunnables() {
+        return runnables;
     }
 }
 
@@ -52,6 +56,7 @@ abstract class RealTimeRunnable extends BukkitRunnable {
         this.raidOutpost = raidOutpost;
         this.delay = delay;
         this.taskType = taskType;
+        raidOutpost.getGlobalTimer().getRunnables().add(this);
     }
 
     public void runTask() {
@@ -63,5 +68,9 @@ abstract class RealTimeRunnable extends BukkitRunnable {
 
     public boolean canRun() {
         return System.currentTimeMillis() >= compareTime + delay;
+    }
+
+    public void stop() {
+        raidOutpost.getGlobalTimer().getRunnables().remove(this);
     }
 }

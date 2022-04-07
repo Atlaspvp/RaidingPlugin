@@ -2,7 +2,6 @@ package net.atlaspvp.raidoutpost;
 
 import com.massivecraft.factions.Faction;
 import com.massivecraft.factions.Factions;
-import com.massivecraft.factions.perms.Relation;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
@@ -46,7 +45,7 @@ public class Postgresql {
         }
 
         try {
-            PreparedStatement ps = connection.prepareStatement("CREATE TABLE IF NOT EXISTS raidoutpost (faction VARCHAR PRIMARY KEY, rewardlist VARCHAR[], captures INTEGER, currentphase INTEGER, time BIGINT)");
+            PreparedStatement ps = connection.prepareStatement("CREATE TABLE IF NOT EXISTS raidoutpost (faction VARCHAR PRIMARY KEY, rewardlist VARCHAR[], captures INTEGER, currentphase INTEGER, time BIGINT, refreshphase BOOLEAN)");
             ps.executeUpdate();
             ps.close();
         } catch (SQLException e) {
@@ -80,7 +79,7 @@ public class Postgresql {
         ObjectSet<Faction> objectSet = raidOutpost.getFactionMap().keySet();
 
         try {
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO raidoutpost (faction, rewardlist, captures, currentphase, time) VALUES (?, ?, ?, ?, ?) ON CONFLICT (faction) DO UPDATE SET rewardlist=?, captures=?, currentphase=?, time=?");
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO raidoutpost (faction, rewardlist, captures, currentphase, time, refreshphase) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (faction) DO UPDATE SET rewardlist=?, captures=?, currentphase=?, time=?, refreshphase=?");
             while (iterator.hasNext()) {
                 Object2ObjectMap.Entry<Faction, RoFaction> pair = iterator.next();
                 RoFaction roFaction = pair.getValue();
@@ -91,12 +90,14 @@ public class Postgresql {
                 if (roFaction.getTime() > 0) {
                     ps.setLong(5, roFaction.getTime());
                 } else ps.setLong(5, 0);
-                ps.setArray(6, connection.createArrayOf("VARCHAR", Utils.generateStringArray1(roFaction.getInventory())));
-                ps.setInt(7, roFaction.getCaptures());
-                ps.setInt(8, roFaction.getCurrentPhase());
+                ps.setBoolean(6, roFaction.isRefreshPhase());
+                ps.setArray(7, connection.createArrayOf("VARCHAR", Utils.generateStringArray1(roFaction.getInventory())));
+                ps.setInt(8, roFaction.getCaptures());
+                ps.setInt(9, roFaction.getCurrentPhase());
                 if (roFaction.getTime() > 0) {
-                    ps.setLong(9, roFaction.getTime());
-                } else ps.setLong(9, 0);
+                    ps.setLong(10, roFaction.getTime());
+                } else ps.setLong(10, 0);
+                ps.setBoolean(11, roFaction.isRefreshPhase());
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -140,8 +141,8 @@ public class Postgresql {
             while (resultSet.next()) {
                 Faction faction = Factions.getInstance().getByTag(resultSet.getString(1));
                 String[] strings = (String[]) resultSet.getArray(2).getArray();
-                RoFaction roFaction = new RoFaction(raidOutpost, faction, resultSet.getInt(3), resultSet.getInt(4), resultSet.getLong(5));
-                if (roFaction.getTime() > 0) {
+                RoFaction roFaction = new RoFaction(raidOutpost, faction, resultSet.getInt(3), resultSet.getInt(4), resultSet.getLong(5), resultSet.getBoolean(6));
+                if (roFaction.isRefreshPhase()) {
                     Utils.refreshCapturePhaseDatabase(raidOutpost, roFaction);
                 }
                 Inventory inventory = roFaction.getInventory();
@@ -176,7 +177,7 @@ public class Postgresql {
 
             lore.clear();
             while (resultSet.next()) {
-                lore.add(ChatColor.WHITE + resultSet.getString(1) + ": " + resultSet.getInt(3));
+                lore.add(ChatColor.GRAY + resultSet.getString(1) + ": " + resultSet.getInt(3));
             }
             resultSet.close();
             ps.close();

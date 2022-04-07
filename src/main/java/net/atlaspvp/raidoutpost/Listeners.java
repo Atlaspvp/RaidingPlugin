@@ -22,7 +22,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -32,7 +31,6 @@ public class Listeners implements Listener {
     private final RaidOutpost raidOutpost;
 
     private final Random random = new Random();
-    private final List<String> lore = new ArrayList<>(1);
 
     private long lastBreachTime;
 
@@ -77,10 +75,9 @@ public class Listeners implements Listener {
                                 Utils.stopCapture(raidOutpost, raidOutpost.getCurrentRoFaction(), captureTimer);
                             }
                         }
-                        raidOutpost.getFactionMap().computeIfAbsent(spawnFaction, k -> new RoFaction(raidOutpost, spawnFaction, 0, 0, raidOutpost.getConfigRo().getPhaseInterval() * 50L));
+                        raidOutpost.getFactionMap().computeIfAbsent(spawnFaction, k -> new RoFaction(raidOutpost, spawnFaction, 0, 0, raidOutpost.getConfigRo().getPhaseInterval() * 50L, true));
                         RoFaction roFaction1 = raidOutpost.getFactionMap().get(spawnFaction);
-                        Utils.startCapture(raidOutpost, roFaction1, spawnFaction, lore);
-                        raidOutpost.setCurrentRoFaction(roFaction1);
+                        Utils.startCapture(raidOutpost, roFaction1, spawnFaction);
                         lastBreachTime = currentTime;
                         return;
                     }
@@ -107,7 +104,7 @@ public class Listeners implements Listener {
     public void onBreak(BlockBreakEvent event) {
         if (raidOutpost.getConfigRo().isPreventMining() && event.getBlock().getType().equals(Material.SPAWNER) && raidOutpost.getRaidMap().containsKey(FPlayers.getInstance().getByPlayer(event.getPlayer()).getFaction())) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage(ChatColor.RED + "You cannot mine spawners while being raided!");
+            event.getPlayer().sendMessage(ChatColor.WHITE + "[" + ChatColor.RED +  "Raid Manager" + ChatColor.WHITE + "] " + ChatColor.RESET + "You cannot mine spawners while being raided!");
         }
     }
 
@@ -172,11 +169,11 @@ public class Listeners implements Listener {
             }
             for (int i = 0; i < 10; i++) {
                 int x = random.nextInt(1599) - 799;
-                int y = 40;
+                int y = raidOutpost.getConfigRo().getRoTeleportHeight();
                 int z = random.nextInt(1599) - 799;
                 Location location = new Location(raidOutpost.getConfigRo().getRaidWorld(), x, y, z);
 
-                if (!location.getBlock().isSolid()) {
+                if (!location.getBlock().isSolid() || !Board.getInstance().getFactionAt(new FLocation(location)).equals(raidOutpost.getWilderness())) {
                     player.teleport(location);
                     raidOutpost.getTeleportCooldown().put(uuid, System.currentTimeMillis());
                     foundLocation = true;

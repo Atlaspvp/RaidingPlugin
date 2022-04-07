@@ -32,6 +32,7 @@ public class Config {
     private final int maxY;
     private final int minZ;
     private final int maxZ;
+    private final int roTeleportHeight;
 
     private final String sourceFolder;
     private final String targetFolder;
@@ -60,6 +61,7 @@ public class Config {
         config.addDefault("raiding-outpost-maxY", 200);
         config.addDefault("raiding-outpost-minZ", -20);
         config.addDefault("raiding-outpost-maxZ", 20);
+        config.addDefault("ro-teleport-height", 40);
 
         config.addDefault("source-folder", "");
         config.addDefault("target-folder", "");
@@ -90,6 +92,7 @@ public class Config {
         maxY = config.getInt("raiding-outpost-maxY");
         minZ = config.getInt("raiding-outpost-minZ");
         maxZ = config.getInt("raiding-outpost-maxZ");
+        roTeleportHeight = config.getInt("ro-teleport-height");
 
         sourceFolder = config.getString("source-folder");
         targetFolder = config.getString("target-folder");
@@ -177,6 +180,10 @@ public class Config {
 
     public int getMaxZ() {
         return maxZ;
+    }
+
+    public int getRoTeleportHeight() {
+        return roTeleportHeight;
     }
 
     public String getSourceFolder() {

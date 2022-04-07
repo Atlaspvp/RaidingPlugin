@@ -74,16 +74,11 @@ public class Utils {
         }
     }
 
-    public static void startCapture(RaidOutpost raidOutpost, RoFaction roFaction, Faction spawnFaction, List<String> lore) {
-        ItemStack tnt = raidOutpost.getRoMenu().getTnt();
-        lore.clear();
-        lore.add(ChatColor.GRAY + "Controlled by: " + roFaction.getFaction().getTag());
-        tnt.setLore(lore);
-        ItemStack barrier = raidOutpost.getRoMenu().getInventory().getItem(11);
-        if (barrier != null && tnt.getType() != Material.BARRIER) {
-            raidOutpost.getRoMenu().getInventory().setItem(11, tnt);
-        }
-
+    public static void startCapture(RaidOutpost raidOutpost, RoFaction roFaction, Faction spawnFaction) {
+        roFaction.setRefreshPhase(true);
+        raidOutpost.setCurrentRoFaction(roFaction);
+        setTntLore(raidOutpost, roFaction, raidOutpost.getLore());
+        setMapLore(raidOutpost, roFaction);
         roFaction.setCaptures(roFaction.getCaptures() + 1);
         roFaction.setCurrentPhase(1);
         if (roFaction.getTime() == 0) {
@@ -95,21 +90,23 @@ public class Utils {
     }
 
     public static void stopCapture(RaidOutpost raidOutpost, RoFaction roFaction, CaptureTimer captureTimer) {
-        captureTimer.cancel();
+        captureTimer.stop();
         roFaction.setCurrentPhase(0);
         roFaction.setTime(0);
         raidOutpost.getRoMenu().getTnt().setLore(null);
         raidOutpost.setCurrentRoFaction(null);
+        roFaction.setRefreshPhase(false);
     }
 
     public static void autoStopCapture(RaidOutpost raidOutpost, RoFaction roFaction, CaptureTimer captureTimer) {
         roFaction.setCurrentPhase(0);
         roFaction.setTime(0);
         raidOutpost.getRoMenu().getTnt().setLore(null);
-        captureTimer.cancel();
+        captureTimer.stop();
         roFaction.removeCaptureTimer();
         Runnable.regenRo(raidOutpost, null);
         raidOutpost.setCurrentRoFaction(null);
+        roFaction.setRefreshPhase(false);
     }
 
     public static void refreshCapturePhase(RaidOutpost raidOutpost, RoFaction roFaction) {
@@ -119,10 +116,33 @@ public class Utils {
     }
 
     public static void refreshCapturePhaseDatabase(RaidOutpost raidOutpost, RoFaction roFaction) {
+        setTntLore(raidOutpost, roFaction, raidOutpost.getLore());
         raidOutpost.setCurrentRoFaction(roFaction);
-        if (raidOutpost.getConfigRo().getPhaseInterval() - roFaction.getTime() <= raidOutpost.getConfigRo().getRoRegenInterval() && roFaction.getCurrentPhase() == 1) {
+        if (raidOutpost.getConfigRo().getPhaseInterval() - roFaction.getTime() / 50 <= raidOutpost.getConfigRo().getRoRegenInterval() && roFaction.getCurrentPhase() == 1) {
             Runnable.regenRo(raidOutpost, null);
         }
         roFaction.startCaptureTimer(roFaction.getTime());
+    }
+
+    public static void setTntLore(RaidOutpost raidOutpost, RoFaction roFaction, List<String> lore) {
+        ItemStack tnt = raidOutpost.getRoMenu().getTnt();
+        lore.clear();
+        lore.add(ChatColor.GRAY + "Controlled by: " + roFaction.getFaction().getTag());
+        tnt.setLore(lore);
+        ItemStack barrier = raidOutpost.getRoMenu().getInventory().getItem(11);
+        if (barrier != null && tnt.getType() != Material.BARRIER) {
+            raidOutpost.getRoMenu().getInventory().setItem(11, tnt);
+        }
+    }
+
+    public static void setMapLore(RaidOutpost raidOutpost, RoFaction roFaction) {
+        ItemStack map = raidOutpost.getRoMenu().getMap();
+        List<String> lore1 = map.getLore();
+        if (lore1 == null) {
+            lore1 = new ArrayList<>();
+        }
+        lore1.add(ChatColor.GRAY + roFaction.getFaction().getTag() + ": " + roFaction.getCaptures());
+        map.setLore(lore1);
+        raidOutpost.getRoMenu().getInventory().setItem(15, map);
     }
 }
