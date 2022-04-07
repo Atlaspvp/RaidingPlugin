@@ -82,7 +82,7 @@ class CaptureTimer extends BukkitRunnable {
     public CaptureTimer(RaidOutpost raidOutpost, RoFaction roFaction) {
         this.raidOutpost = raidOutpost;
         this.roFaction = roFaction;
-        roFaction.setCaptureTimer(this);
+        this.roFaction.setCaptureTimer(this);
     }
 
     @Override

@@ -16,6 +16,7 @@ public final class RaidOutpost extends JavaPlugin {
     private final Object2ObjectOpenHashMap<Faction, RoFaction> factionMap = new Object2ObjectOpenHashMap<>();
     private final Int2ObjectOpenHashMap<PhaseData> phaseDataMap = new Int2ObjectOpenHashMap<>();
     private final Object2LongOpenHashMap<UUID> teleportCooldown = new Object2LongOpenHashMap<>();
+    private GlobalTimer globalTimer;
     private Config config;
     private RoMenu roMenu;
     private Faction ro;
@@ -25,6 +26,7 @@ public final class RaidOutpost extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        globalTimer = new GlobalTimer(this);
         Postgresql.createTable(this);
         Postgresql.readItemStacks(this);
         roMenu = new RoMenu(this);
@@ -95,5 +97,9 @@ public final class RaidOutpost extends JavaPlugin {
 
     public void setRoLockdown(boolean roLockdown) {
         this.roLockdown = roLockdown;
+    }
+
+    public GlobalTimer getGlobalTimer() {
+        return globalTimer;
     }
 }

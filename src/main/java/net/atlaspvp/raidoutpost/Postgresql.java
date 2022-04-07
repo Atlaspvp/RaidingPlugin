@@ -84,24 +84,19 @@ public class Postgresql {
             while (iterator.hasNext()) {
                 Object2ObjectMap.Entry<Faction, RoFaction> pair = iterator.next();
                 RoFaction roFaction = pair.getValue();
-                long time = System.currentTimeMillis();
                 ps.setString(1, pair.getKey().getTag());
                 ps.setArray(2, connection.createArrayOf("VARCHAR", Utils.generateStringArray1(roFaction.getInventory())));
                 ps.setInt(3, roFaction.getCaptures());
                 ps.setInt(4, roFaction.getCurrentPhase());
-                if (roFaction.getTime() != 0) {
-                    ps.setLong(5, roFaction.getTime() - time);
-                } else {
-                    ps.setLong(5, 0);
-                }
+                if (roFaction.getTime() > 0) {
+                    ps.setLong(5, roFaction.getTime());
+                } else ps.setLong(5, 0);
                 ps.setArray(6, connection.createArrayOf("VARCHAR", Utils.generateStringArray1(roFaction.getInventory())));
                 ps.setInt(7, roFaction.getCaptures());
                 ps.setInt(8, roFaction.getCurrentPhase());
-                if (roFaction.getTime() != 0) {
-                    ps.setLong(9, roFaction.getTime() - time);
-                } else {
-                    ps.setLong(9, 0);
-                }
+                if (roFaction.getTime() > 0) {
+                    ps.setLong(9, roFaction.getTime());
+                } else ps.setLong(9, 0);
                 ps.addBatch();
             }
             ps.executeBatch();
