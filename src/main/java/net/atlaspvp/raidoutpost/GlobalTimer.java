@@ -39,7 +39,7 @@ public class GlobalTimer extends BukkitRunnable {
     }
 }
 
-class RealTimeRunnable extends BukkitRunnable {
+abstract class RealTimeRunnable extends BukkitRunnable {
 
     private final RaidOutpost raidOutpost;
     private final long compareTime = System.currentTimeMillis();
@@ -53,9 +53,6 @@ class RealTimeRunnable extends BukkitRunnable {
         this.delay = delay;
         this.taskType = taskType;
     }
-
-    @Override
-    public void run() {}
 
     public void runTask() {
         switch (taskType) {

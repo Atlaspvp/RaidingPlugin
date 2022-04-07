@@ -4,7 +4,6 @@ import com.massivecraft.factions.Faction;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,8 +25,8 @@ public class RoFaction implements InventoryHolder {
         this.time = time;
     }
 
-    public void startCaptureTimer(long ticks) {
-        new CaptureTimer(raidOutpost, this).runTaskLater(raidOutpost, ticks);
+    public void startCaptureTimer(long delay) {
+        raidOutpost.getGlobalTimer().scheduleTask(new CaptureTimer(raidOutpost, this, delay));
     }
 
     @Override
@@ -74,12 +73,13 @@ public class RoFaction implements InventoryHolder {
     public void removeCaptureTimer() {captureTimer = null;};
 }
 
-class CaptureTimer extends BukkitRunnable {
+class CaptureTimer extends RealTimeRunnable {
 
     private final RaidOutpost raidOutpost;
     private final RoFaction roFaction;
 
-    public CaptureTimer(RaidOutpost raidOutpost, RoFaction roFaction) {
+    public CaptureTimer(RaidOutpost raidOutpost, RoFaction roFaction, long delay) {
+        super(raidOutpost, delay, RealTimeRunnable.SYNC);
         this.raidOutpost = raidOutpost;
         this.roFaction = roFaction;
         this.roFaction.setCaptureTimer(this);
@@ -92,6 +92,6 @@ class CaptureTimer extends BukkitRunnable {
             Utils.autoStopCapture(raidOutpost, roFaction, this);
             return;
         }
-        new CaptureTimer(raidOutpost, roFaction).runTaskLater(raidOutpost, raidOutpost.getConfigRo().getPhaseInterval());
+        raidOutpost.getGlobalTimer().scheduleTask(new CaptureTimer(raidOutpost, roFaction, raidOutpost.getConfigRo().getPhaseInterval() * 50L));
     }
 }
