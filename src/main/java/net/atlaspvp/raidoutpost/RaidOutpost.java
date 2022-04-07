@@ -17,6 +17,7 @@ public final class RaidOutpost extends JavaPlugin {
     private final Int2ObjectOpenHashMap<PhaseData> phaseDataMap = new Int2ObjectOpenHashMap<>();
     private final Object2LongOpenHashMap<UUID> teleportCooldown = new Object2LongOpenHashMap<>();
     private GlobalTimer globalTimer;
+    private RoFaction currentRoFaction;
     private Config config;
     private RoMenu roMenu;
     private Faction ro;
@@ -101,5 +102,13 @@ public final class RaidOutpost extends JavaPlugin {
 
     public GlobalTimer getGlobalTimer() {
         return globalTimer;
+    }
+
+    public RoFaction getCurrentRoFaction() {
+        return currentRoFaction;
+    }
+
+    public void setCurrentRoFaction(RoFaction currentRoFaction) {
+        this.currentRoFaction = currentRoFaction;
     }
 }

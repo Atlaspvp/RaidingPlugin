@@ -86,8 +86,10 @@ public class Utils {
 
         roFaction.setCaptures(roFaction.getCaptures() + 1);
         roFaction.setCurrentPhase(1);
+        if (roFaction.getTime() == 0) {
+            roFaction.setTime(raidOutpost.getConfigRo().getPhaseInterval() * 50L);
+        }
         giveRewards(raidOutpost, roFaction.getInventory(), 1);
-        roFaction.setTime(raidOutpost.getConfigRo().getPhaseInterval() * 50L);
         roFaction.startCaptureTimer(raidOutpost.getConfigRo().getPhaseInterval());
         Runnable.regenRo(raidOutpost, spawnFaction);
     }
@@ -97,6 +99,7 @@ public class Utils {
         roFaction.setCurrentPhase(0);
         roFaction.setTime(0);
         raidOutpost.getRoMenu().getTnt().setLore(null);
+        raidOutpost.setCurrentRoFaction(null);
     }
 
     public static void autoStopCapture(RaidOutpost raidOutpost, RoFaction roFaction, CaptureTimer captureTimer) {
@@ -106,6 +109,7 @@ public class Utils {
         captureTimer.cancel();
         roFaction.removeCaptureTimer();
         Runnable.regenRo(raidOutpost, null);
+        raidOutpost.setCurrentRoFaction(null);
     }
 
     public static void refreshCapturePhase(RaidOutpost raidOutpost, RoFaction roFaction) {
@@ -115,6 +119,7 @@ public class Utils {
     }
 
     public static void refreshCapturePhaseDatabase(RaidOutpost raidOutpost, RoFaction roFaction) {
+        raidOutpost.setCurrentRoFaction(roFaction);
         if (raidOutpost.getConfigRo().getPhaseInterval() - roFaction.getTime() <= raidOutpost.getConfigRo().getRoRegenInterval() && roFaction.getCurrentPhase() == 1) {
             Runnable.regenRo(raidOutpost, null);
         }

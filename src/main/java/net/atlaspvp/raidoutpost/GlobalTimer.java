@@ -1,6 +1,5 @@
 package net.atlaspvp.raidoutpost;
 
-import it.unimi.dsi.fastutil.objects.ObjectCollection;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
@@ -21,12 +20,8 @@ public class GlobalTimer extends BukkitRunnable {
     @Override
     public void run() {
         delta = System.currentTimeMillis() - compareTime;
-        if (!raidOutpost.getFactionMap().isEmpty()) {
-            ObjectCollection<RoFaction> roFactions = raidOutpost.getFactionMap().values();
-            for (RoFaction roFaction : roFactions) {
-                if (roFaction.getTime() == 0) continue;
-                roFaction.setTime(roFaction.getTime() - delta);
-            }
+        if (raidOutpost.getCurrentRoFaction() != null && raidOutpost.getCurrentRoFaction().getTime() > 0) {
+            raidOutpost.getCurrentRoFaction().setTime(raidOutpost.getCurrentRoFaction().getTime() - delta);
         }
         compareTime = System.currentTimeMillis();
         if (runnables.isEmpty()) return;

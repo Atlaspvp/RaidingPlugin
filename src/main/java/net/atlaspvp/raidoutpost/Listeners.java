@@ -32,7 +32,6 @@ public class Listeners implements Listener {
     private final RaidOutpost raidOutpost;
 
     private final Random random = new Random();
-    private RoFaction roFaction;
     private final List<String> lore = new ArrayList<>(1);
 
     private long lastBreachTime;
@@ -72,17 +71,16 @@ public class Listeners implements Listener {
                         RoFaction roFaction = raidOutpost.getFactionMap().get(spawnFaction);
                         if (roFaction != null && roFaction.getCaptureTimer() != null) {
                             return;
-                        } else if (this.roFaction != null) {
-                            CaptureTimer captureTimer = this.roFaction.getCaptureTimer();
+                        } else if (raidOutpost.getCurrentRoFaction() != null) {
+                            CaptureTimer captureTimer = raidOutpost.getCurrentRoFaction().getCaptureTimer();
                             if (captureTimer != null) {
-                                Utils.stopCapture(raidOutpost, this.roFaction, captureTimer);
-                            } else {
-                                this.roFaction = null;
+                                Utils.stopCapture(raidOutpost, raidOutpost.getCurrentRoFaction(), captureTimer);
                             }
                         }
-                        raidOutpost.getFactionMap().computeIfAbsent(spawnFaction, k -> new RoFaction(raidOutpost, spawnFaction, 0, 0, 0));
-                        this.roFaction = raidOutpost.getFactionMap().get(spawnFaction);
-                        Utils.startCapture(raidOutpost, this.roFaction, spawnFaction, lore);
+                        raidOutpost.getFactionMap().computeIfAbsent(spawnFaction, k -> new RoFaction(raidOutpost, spawnFaction, 0, 0, raidOutpost.getConfigRo().getPhaseInterval() * 50L));
+                        RoFaction roFaction1 = raidOutpost.getFactionMap().get(spawnFaction);
+                        Utils.startCapture(raidOutpost, roFaction1, spawnFaction, lore);
+                        raidOutpost.setCurrentRoFaction(roFaction1);
                         lastBreachTime = currentTime;
                         return;
                     }
