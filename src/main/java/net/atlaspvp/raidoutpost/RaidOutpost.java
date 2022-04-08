@@ -40,6 +40,7 @@ public final class RaidOutpost extends JavaPlugin {
             outpost.setPermanent(true);
             outpost.setPermanentPower(1000);
             outpost.setTag("RaidOutpost");
+            outpost.setDescription("Capture to gain rewards");
         }
         ro = Factions.getInstance().getByTag("RaidOutpost");
         Postgresql.readFaction(this);

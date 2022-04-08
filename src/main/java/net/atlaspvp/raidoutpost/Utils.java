@@ -77,9 +77,9 @@ public class Utils {
     public static void startCapture(RaidOutpost raidOutpost, RoFaction roFaction, Faction spawnFaction) {
         roFaction.setRefreshPhase(true);
         raidOutpost.setCurrentRoFaction(roFaction);
+        roFaction.setCaptures(roFaction.getCaptures() + 1);
         setTntLore(raidOutpost, roFaction, raidOutpost.getLore());
         setMapLore(raidOutpost, roFaction);
-        roFaction.setCaptures(roFaction.getCaptures() + 1);
         roFaction.setCurrentPhase(1);
         if (roFaction.getTime() == 0) {
             roFaction.setTime(raidOutpost.getConfigRo().getPhaseInterval() * 50L);
@@ -112,6 +112,7 @@ public class Utils {
     public static void refreshCapturePhase(RaidOutpost raidOutpost, RoFaction roFaction) {
         roFaction.setTime(raidOutpost.getConfigRo().getPhaseInterval() * 50L);
         roFaction.setCurrentPhase(roFaction.getCurrentPhase() + 1);
+        setTntLore(raidOutpost, roFaction, raidOutpost.getLore());
         giveRewards(raidOutpost, roFaction.getInventory(), roFaction.getCurrentPhase());
     }
 
@@ -128,9 +129,10 @@ public class Utils {
         ItemStack tnt = raidOutpost.getRoMenu().getTnt();
         lore.clear();
         lore.add(ChatColor.GRAY + "Controlled by: " + roFaction.getFaction().getTag());
+        lore.add(ChatColor.GRAY + "Phase: " + roFaction.getCurrentPhase());
         tnt.setLore(lore);
         ItemStack barrier = raidOutpost.getRoMenu().getInventory().getItem(11);
-        if (barrier != null && tnt.getType() != Material.BARRIER) {
+        if (barrier != null && barrier.getType() != Material.BARRIER) {
             raidOutpost.getRoMenu().getInventory().setItem(11, tnt);
         }
     }

@@ -58,8 +58,12 @@ public class Listeners implements Listener {
         long currentTime = System.currentTimeMillis();
         if (tntPrimed.getWorld().equals(raidOutpost.getConfigRo().getRaidWorld())) {
             if (!eventFaction.equals(raidOutpost.getRo())) return;
+            if (spawnFaction.equals(raidOutpost.getWilderness())) {
+                event.setCancelled(true);
+                return;
+            }
 
-            if (!Utils.isCooldown(currentTime, lastBreachTime + raidOutpost.getConfigRo().getLockWildTeleport())) {
+            if (!Utils.isCooldown(currentTime, lastBreachTime + raidOutpost.getConfigRo().getLockWildTeleport() * 50L)) {
                 event.setCancelled(true);
                 return;
             } else if (Utils.isInsideXZ(eventLoc, raidOutpost.getConfigRo(), 2)) {
@@ -89,7 +93,7 @@ public class Listeners implements Listener {
         if (eventFaction.equals(spawnFaction)) return;
 
         if (raidOutpost.getRaidMap().containsKey(eventFaction)) {
-            if (Utils.isCooldown(currentTime, raidOutpost.getRaidMap().get(eventFaction) + 100)) return;
+            if (!Utils.isCooldown(currentTime, raidOutpost.getRaidMap().get(eventFaction) + 1000)) return;
             if (blockList.contains(eventLoc.getBlock())){
                 raidOutpost.getRaidMap().put(eventFaction, currentTime);
             }
@@ -152,15 +156,9 @@ public class Listeners implements Listener {
         event.setCancelled(true);
 
         HumanEntity player = event.getWhoClicked();
-        Faction faction = FPlayers.getInstance().getByPlayer((Player) player).getFaction();
-        RoFaction roFaction = raidOutpost.getFactionMap().get(faction);
-        Inventory inventory1 = null;
-        if (roFaction != null) {
-            inventory1 = roFaction.getInventory();
-        }
 
         Material material = itemStack.getType();
-        if (material == Material.TNT && title.equalsIgnoreCase("Raid Outpost")) {
+        if (material == Material.TNT) {
             boolean foundLocation = false;
             UUID uuid = player.getUniqueId();
             if (raidOutpost.getTeleportCooldown().containsKey(uuid) && !Utils.isCooldown(System.currentTimeMillis(), raidOutpost.getTeleportCooldown().get(uuid) + raidOutpost.getConfigRo().getTeleportCooldown())) {
@@ -184,13 +182,19 @@ public class Listeners implements Listener {
                 Utils.sendRoMessage(player, "Could not find a location to teleport to");
             }
         }
-        if (material == Material.CHEST && title.equalsIgnoreCase("Raid Outpost")) {
-            if (inventory1 == null) {
-                Utils.sendRoMessage(player, "Your faction needs to capture Raid Outpost at least once");
+        if (material == Material.CHEST) {
+            Faction faction = FPlayers.getInstance().getByPlayer((Player) player).getFaction();
+            RoFaction roFaction = raidOutpost.getFactionMap().get(faction);
+            if (faction.equals(raidOutpost.getWilderness())) {
+                Utils.sendRoMessage(player, "Wilderness can not capture Raid Outpost");
                 return;
             }
-            inventory.close();
-            player.openInventory(inventory1);
+            if (roFaction == null) {
+                Utils.sendRoMessage(player, "Your faction needs to capture Raid Outpost at least once");
+            } else {
+                inventory.close();
+                player.openInventory(roFaction.getInventory());
+            }
         }
     }
 }

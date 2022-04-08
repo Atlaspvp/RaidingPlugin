@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.craftbukkit.libs.org.apache.commons.io.FileUtils;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -48,8 +49,10 @@ public class Runnable {
         new BukkitRunnable() {
             @Override
             public void run() {
-                for (Player player : raidWorld.getPlayers()) {
-                    player.teleport(spawnWorld.getSpawnLocation());
+                for (Entity entity : raidWorld.getEntities()) {
+                    if (entity instanceof Player) {
+                        entity.teleport(spawnWorld.getSpawnLocation());
+                    } else entity.remove();
                 }
                 new BukkitRunnable() {
                     @Override
