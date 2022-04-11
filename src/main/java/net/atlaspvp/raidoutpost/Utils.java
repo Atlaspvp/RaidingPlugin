@@ -1,6 +1,10 @@
 package net.atlaspvp.raidoutpost;
 
 import com.massivecraft.factions.Faction;
+import com.massivecraft.factions.data.MemoryFaction;
+import com.massivecraft.factions.perms.PermSelector;
+import com.massivecraft.factions.perms.PermissibleActions;
+import com.massivecraft.factions.perms.selector.FactionSelector;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.nbt.MojangsonParser;
 import org.bukkit.ChatColor;
@@ -11,9 +15,7 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Utils {
 
@@ -87,6 +89,7 @@ public class Utils {
         giveRewards(raidOutpost, roFaction.getInventory(), 1);
         roFaction.startCaptureTimer(raidOutpost.getConfigRo().getPhaseInterval() * 50L);
         Runnable.regenRo(raidOutpost, spawnFaction);
+        setFactionBuildPerm(raidOutpost, roFaction);
     }
 
     public static void stopCapture(RaidOutpost raidOutpost, RoFaction roFaction, CaptureTimer captureTimer) {
@@ -107,6 +110,7 @@ public class Utils {
         Runnable.regenRo(raidOutpost, null);
         raidOutpost.setCurrentRoFaction(null);
         roFaction.setRefreshPhase(false);
+        clearBuildPerm(raidOutpost);
     }
 
     public static void refreshCapturePhase(RaidOutpost raidOutpost, RoFaction roFaction) {
@@ -146,5 +150,26 @@ public class Utils {
         lore1.add(ChatColor.GRAY + roFaction.getFaction().getTag() + ": " + roFaction.getCaptures());
         map.setLore(lore1);
         raidOutpost.getRoMenu().getInventory().setItem(15, map);
+    }
+
+    public static void setFactionBuildPerm(RaidOutpost raidOutpost, RoFaction roFaction) {
+        LinkedHashMap<PermSelector, Map<String, Boolean>> permissions = ((MemoryFaction) raidOutpost.getRo()).getPermissions();
+        FactionSelector newFaction = new FactionSelector(roFaction.getFaction().getTag());
+        permissions.clear();
+        Map<String, Boolean> actions = new LinkedHashMap<>();
+        actions.put(PermissibleActions.BUILD.getName(), true);
+        actions.put(PermissibleActions.DESTROY.getName(), true);
+        actions.put(PermissibleActions.FLY.getName(), true);
+        actions.put(PermissibleActions.ITEM.getName(), true);
+        actions.put(PermissibleActions.DOOR.getName(), true);
+        actions.put(PermissibleActions.BUTTON.getName(), true);
+        actions.put(PermissibleActions.CONTAINER.getName(), true);
+        actions.put(PermissibleActions.LEVER.getName(), true);
+        actions.put(PermissibleActions.PLATE.getName(), true);
+        permissions.put(newFaction, actions);
+    }
+
+    public static void clearBuildPerm(RaidOutpost raidOutpost) {
+        ((MemoryFaction) raidOutpost.getRo()).getPermissions().clear();
     }
 }

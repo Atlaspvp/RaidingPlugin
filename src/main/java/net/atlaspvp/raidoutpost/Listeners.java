@@ -186,7 +186,7 @@ public class Listeners implements Listener {
             Faction faction = FPlayers.getInstance().getByPlayer((Player) player).getFaction();
             RoFaction roFaction = raidOutpost.getFactionMap().get(faction);
             if (faction.equals(raidOutpost.getWilderness())) {
-                Utils.sendRoMessage(player, "Wilderness can not capture Raid Outpost");
+                Utils.sendRoMessage(player, "Wilderness cannot capture Raid Outpost");
                 return;
             }
             if (roFaction == null) {

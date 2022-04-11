@@ -100,12 +100,10 @@ public class Runnable {
 
                 while (iterator.hasNext()) {
                     Object2LongMap.Entry<Faction> pair = iterator.next();
-                    iterator.remove(); // avoids a ConcurrentModificationException
 
                     if (Utils.isCooldown(System.currentTimeMillis(), pair.getLongValue() + raidOutpost.getConfigRo().getTimeout())) {
-                        Faction defendFaction = pair.getKey();
-                        raidOutpost.getRaidMap().remove(defendFaction);
-                        defendFaction.sendMessage(raidOutpost.getConfigRo().getEndMSGTarget());
+                        pair.getKey().sendMessage(raidOutpost.getConfigRo().getEndMSGTarget());
+                        iterator.remove();
                     }
                 }
             }
