@@ -96,6 +96,7 @@ public class Utils {
         captureTimer.stop();
         roFaction.setCurrentPhase(0);
         roFaction.setTime(0);
+        roFaction.setCaptureTimer(null);
         raidOutpost.getRoMenu().getTnt().setLore(null);
         raidOutpost.setCurrentRoFaction(null);
         roFaction.setRefreshPhase(false);
@@ -106,7 +107,7 @@ public class Utils {
         roFaction.setTime(0);
         raidOutpost.getRoMenu().getTnt().setLore(null);
         captureTimer.stop();
-        roFaction.removeCaptureTimer();
+        roFaction.setCaptureTimer(null);
         Runnable.regenRo(raidOutpost, null);
         raidOutpost.setCurrentRoFaction(null);
         roFaction.setRefreshPhase(false);

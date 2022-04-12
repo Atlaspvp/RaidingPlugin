@@ -123,6 +123,10 @@ public class Listeners implements Listener {
     public void onDisbandFaction(FactionDisbandEvent event) {
         RoFaction roFaction = raidOutpost.getFactionMap().get(event.getFaction());
         if (roFaction == null) return;
+        if (roFaction.getCaptureTimer() != null) {
+            Utils.autoStopCapture(raidOutpost, roFaction, roFaction.getCaptureTimer());
+            return;
+        }
         ItemStack map = raidOutpost.getRoMenu().getMap();
         List<String> lore = map.getLore();
         if (lore != null) {
@@ -137,6 +141,10 @@ public class Listeners implements Listener {
     public void onAutoDisbandFaction(FactionAutoDisbandEvent event) {
         RoFaction roFaction = raidOutpost.getFactionMap().get(event.getFaction());
         if (roFaction == null) return;
+        if (roFaction.getCaptureTimer() != null) {
+            Utils.autoStopCapture(raidOutpost, roFaction, roFaction.getCaptureTimer());
+            return;
+        }
         ItemStack map = raidOutpost.getRoMenu().getMap();
         List<String> lore = map.getLore();
         if (lore != null) {

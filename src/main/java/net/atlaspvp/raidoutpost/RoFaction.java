@@ -72,8 +72,6 @@ public class RoFaction implements InventoryHolder {
         return faction;
     }
 
-    public void removeCaptureTimer() {captureTimer = null;};
-
     public boolean isRefreshPhase() {
         return refreshPhase;
     }
@@ -97,10 +95,6 @@ class CaptureTimer extends RealTimeRunnable {
 
     @Override
     public void run() {
-        if (raidOutpost.getFactionMap().get(roFaction.getFaction()) == null) {
-            Utils.autoStopCapture(raidOutpost, roFaction, this);
-            return;
-        }
         Utils.refreshCapturePhase(raidOutpost, roFaction);
         if (roFaction.getCurrentPhase() == 7) {
             Utils.autoStopCapture(raidOutpost, roFaction, this);
