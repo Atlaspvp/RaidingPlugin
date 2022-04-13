@@ -22,7 +22,7 @@ import java.util.List;
 
 public class Postgresql {
 
-    public static boolean isDisabled = false;
+    private static boolean isDisabled = false;
     private static final List<String> lore = new ArrayList<>(5);
 
     private static void closeConnection(Connection connection) {
